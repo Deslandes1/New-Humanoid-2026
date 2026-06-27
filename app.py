@@ -775,6 +775,7 @@ with col_view:
     viewer_path = os.path.join(STATIC_DIR, "viewer.html")
     with open(viewer_path, "w", encoding="utf-8") as f:
         f.write(viewer_html)
+    # No 'scrolling' parameter – this avoids the TypeError
     st.iframe(src="/static/viewer.html", height=650)
 
 with col_info:
