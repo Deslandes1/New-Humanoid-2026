@@ -129,7 +129,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----- HTML Viewer -----
+# ----- HTML Viewer (no st.iframe, uses st.components.v1.html) -----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     color_map = {"Red Titan": 0xff3333, "Blue Sentinel": 0x3388ff, "Green Viper": 0x33cc66, "Gold Phoenix": 0xffaa00, "Silver Ghost": 0xcccccc}
     main_color = color_map.get(robot_name, 0x3388ff)
@@ -759,7 +759,7 @@ with col_view:
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
-    # Use st.components.v1.html (scrolling is valid here)
+    # Correct method – no st.iframe, uses st.components.v1.html
     st.components.v1.html(viewer_html, height=650, scrolling=True)
 
 with col_info:
