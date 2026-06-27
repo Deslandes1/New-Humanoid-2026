@@ -3,6 +3,7 @@ import os
 import tempfile
 import time
 import json
+import urllib.parse
 
 try:
     from gtts import gTTS
@@ -128,7 +129,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----- HTML Viewer (returns the full HTML as a string) -----
+# ----- Build the 3D viewer HTML (as a string) -----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     color_map = {"Red Titan": 0xff3333, "Blue Sentinel": 0x3388ff, "Green Viper": 0x33cc66, "Gold Phoenix": 0xffaa00, "Silver Ghost": 0xcccccc}
     main_color = color_map.get(robot_name, 0x3388ff)
@@ -152,7 +153,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Use the most reliable CDN combo (cdnjs for three, jsdelivr for OrbitControls)
+    # Use the most robust CDN setup: try cdnjs for three, then unpkg as fallback
+    # We'll include both in the script tags using multiple sources with onerror fallback
     html_template = """
     <!DOCTYPE html>
     <html>
@@ -179,16 +181,14 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         <div id="info">🤖 ROBOT_NAME | Command: COMMAND</div>
         <div id="fallback">⚠️ 3D engine failed to load.<br><small>Check the browser console (F12) for details.</small></div>
         
-        <!-- Load Three.js from cdnjs (reliable) -->
+        <!-- Try multiple CDN sources: cdnjs first, then unpkg, then jsdelivr -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" 
-                onerror="document.getElementById('fallback').classList.add('show')"></script>
-        <!-- OrbitControls from jsdelivr (matches version) -->
+                onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://unpkg.com/three@0.128.0/build/three.min.js'; document.head.appendChild(s);"></script>
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" 
-                onerror="document.getElementById('fallback').classList.add('show')"></script>
+                onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js'; document.head.appendChild(s);"></script>
         
         <script>
             (function() {
-                // Global error handler to show fallback on any uncaught error
                 window.onerror = function(msg, url, line, col, error) {
                     var fallback = document.getElementById('fallback');
                     fallback.classList.add('show');
@@ -200,7 +200,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 var container = document.getElementById('canvas-container');
                 var fallback = document.getElementById('fallback');
                 var initAttempts = 0;
-                var maxAttempts = 10;  // more attempts
+                var maxAttempts = 15; // generous
                 
                 function init() {
                     if (typeof THREE === 'undefined') {
@@ -230,13 +230,18 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     }
                     
                     try {
-                        // --- Build scene ---
-                        var scene = new THREE.Scene();
-                        scene.background = new THREE.Color(0x0a0a0f);
-                        
                         // Ensure container has dimensions
                         var w = container.clientWidth || window.innerWidth;
                         var h = container.clientHeight || window.innerHeight;
+                        if (w === 0 || h === 0) {
+                            // Give it a moment to render
+                            setTimeout(init, 100);
+                            return;
+                        }
+                        
+                        var scene = new THREE.Scene();
+                        scene.background = new THREE.Color(0x0a0a0f);
+                        
                         var camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
                         camera.position.set(3, 2, 4);
                         camera.lookAt(0, 0.8, 0);
@@ -666,7 +671,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     }
                 }
                 
-                // Start after a short delay to ensure scripts are loaded
+                // Start after a short delay
                 setTimeout(init, 300);
             })();
         </script>
@@ -820,9 +825,9 @@ with col_view:
         st.session_state.kata
     )
     
-    # Keep using st.components.v1.html – the deprecation warning is harmless.
-    # Remove 'scrolling' to avoid keyword errors on some versions.
-    st.components.v1.html(viewer_html, height=650)
+    # Encode HTML as data URI and use st.iframe (no scrolling parameter)
+    data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
+    st.iframe(data_uri, height=650)
 
 with col_info:
     st.markdown(f"""
