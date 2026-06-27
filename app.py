@@ -814,11 +814,8 @@ with col_view:
         st.session_state.kata
     )
     
-    # Use st.html if available (Streamlit 1.36+), otherwise fallback to st.components.v1.html
-    if hasattr(st, 'html'):
-        st.html(viewer_html, height=650)
-    else:
-        st.components.v1.html(viewer_html, height=650, scrolling=True)
+    # Use the stable, known-working component (deprecation warning is harmless)
+    st.components.v1.html(viewer_html, height=650, scrolling=True)
 
 with col_info:
     st.markdown(f"""
