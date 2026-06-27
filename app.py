@@ -204,6 +204,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 const isKata = IS_KATA;
                 const animCommand = 'ANIM_CMD';
                 const kataSequence = KATA_SEQUENCE;
+                // Valid commands list (will be replaced)
+                const validCommands = [];
 
                 // Animation state
                 let animTime = 0;
@@ -568,20 +570,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     html = html.replace('IS_KATA', 'true' if is_kata else 'false')
     html = html.replace('ANIM_CMD', anim_cmd)
     html = html.replace('KATA_SEQUENCE', kata_sequence_json)
-    # Also add valid commands for the JS
-    valid_commands_js = ['walk', 'run', 'jump', 'wave', 'backflip']
-    html = html.replace('validCommands', JSON.stringify(valid_commands_js))
-    # We'll inject validCommands into the JS by replacing a placeholder
-    html = html.replace('const validCommands = [];', f'const validCommands = {json.dumps(valid_commands_js)};')
-
-    # Fix: the JS uses validCommands, but we defined it with a placeholder that we replace
-    # Actually we can just define it directly in the JS string above, but for clarity we'll replace
-    # The template has a placeholder `// VALID_COMMANDS_PLACEHOLDER` which we'll replace.
-    # I'll adjust the template to include a placeholder.
-    # Since we already have a placeholder, let's add it.
-    # I'll modify the template to have a specific string to replace.
-    # For simplicity, I'll just replace the line that defines validCommands.
-    html = html.replace('const validCommands = [];', f'const validCommands = {json.dumps(valid_commands_js)};')
+    # Replace validCommands placeholder
+    html = html.replace('const validCommands = [];', f'const validCommands = {json.dumps(valid_commands)};')
 
     return html
 
