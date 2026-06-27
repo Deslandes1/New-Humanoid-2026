@@ -4,7 +4,6 @@ import tempfile
 import time
 import json
 import urllib.parse
-import base64
 
 try:
     from gtts import gTTS
@@ -648,7 +647,8 @@ with col_view:
     )
     # Encode as data URI
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    st.iframe(data_uri, height=650, width=None)
+    # FIX: width must be a valid value; using "100%" to fill column
+    st.iframe(data_uri, height=650, width="100%")
 
 with col_info:
     st.markdown(f"""
