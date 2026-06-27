@@ -129,22 +129,34 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----- Build the 3D viewer HTML (as a string) -----
+# ----- Build the 2D Canvas viewer HTML -----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
-    color_map = {"Red Titan": 0xff3333, "Blue Sentinel": 0x3388ff, "Green Viper": 0x33cc66, "Gold Phoenix": 0xffaa00, "Silver Ghost": 0xcccccc}
-    main_color = color_map.get(robot_name, 0x3388ff)
-    accent = main_color + 0x444444 if main_color < 0xcccccc else 0xeeeeee
+    # Get colors for the robot
+    color_map = {"Red Titan": "#ff3333", "Blue Sentinel": "#3388ff", "Green Viper": "#33cc66", "Gold Phoenix": "#ffaa00", "Silver Ghost": "#cccccc"}
+    main_color = color_map.get(robot_name, "#3388ff")
+    # Convert hex to RGB for canvas
+    def hex_to_rgb(hex_color):
+        h = hex_color.lstrip('#')
+        return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
+    main_rgb = hex_to_rgb(main_color)
+    accent_rgb = (min(255, main_rgb[0]+60), min(255, main_rgb[1]+60), min(255, main_rgb[2]+60))
 
     is_kata = kata_name is not None
     kata_info = KATAS.get(kata_name, None) if is_kata else None
     if is_kata and kata_info:
-        kimono_color = int(kata_info["kimono"].lstrip("#"), 16)
-        belt_color = int(kata_info["belt"].lstrip("#"), 16)
-        headband_color = int(kata_info["headband"].lstrip("#"), 16)
+        kimono_color = kata_info["kimono"]
+        belt_color = kata_info["belt"]
+        headband_color = kata_info["headband"]
+        belt_rank = kata_info["belt_rank"]
     else:
         kimono_color = main_color
         belt_color = main_color
-        headband_color = main_color
+        headband_color = "#ff0000"  # default
+        belt_rank = ""
+
+    kimono_rgb = hex_to_rgb(kimono_color)
+    belt_rgb = hex_to_rgb(belt_color)
+    headband_rgb = hex_to_rgb(headband_color)
 
     cmd_lower = command.lower() if command else "idle"
     valid_commands = ['walk', 'run', 'jump', 'wave', 'backflip']
@@ -153,541 +165,424 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Use the most robust CDN setup: try cdnjs for three, then unpkg as fallback
-    # We'll include both in the script tags using multiple sources with onerror fallback
+    # Build the HTML with canvas and animation
     html_template = """
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
         <style>
-            body { margin: 0; overflow: hidden; background: #0a0a0f; font-family: Arial; }
-            #canvas-container { width: 100vw; height: 100vh; display: block; }
+            body { margin: 0; background: #0a0a0f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
+            canvas { display: block; background: #0a0a0f; }
             #info { position: absolute; bottom: 20px; left: 20px; color: #8899bb; font-size: 14px; pointer-events: none; z-index: 10; }
-            #fallback { 
-                position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
-                color: #ff6b6b; font-size: 20px; text-align: center; 
-                display: none; z-index: 20; 
-                background: rgba(10,10,15,0.95); padding: 30px; border-radius: 12px;
-                border: 1px solid #ff6b6b;
-                max-width: 80%;
-            }
-            #fallback.show { display: block; }
-            #fallback small { color: #8899bb; font-size: 14px; display: block; margin-top: 10px; }
         </style>
     </head>
     <body>
-        <div id="canvas-container"></div>
+        <canvas id="canvas"></canvas>
         <div id="info">🤖 ROBOT_NAME | Command: COMMAND</div>
-        <div id="fallback">⚠️ 3D engine failed to load.<br><small>Check the browser console (F12) for details.</small></div>
-        
-        <!-- Try multiple CDN sources: cdnjs first, then unpkg, then jsdelivr -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" 
-                onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://unpkg.com/three@0.128.0/build/three.min.js'; document.head.appendChild(s);"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" 
-                onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js'; document.head.appendChild(s);"></script>
-        
         <script>
             (function() {
-                window.onerror = function(msg, url, line, col, error) {
-                    var fallback = document.getElementById('fallback');
-                    fallback.classList.add('show');
-                    fallback.innerHTML = '⚠️ Error: ' + msg + '<br><small>See console for details.</small>';
-                    console.error('Uncaught error:', error);
-                    return true;
-                };
-                
-                var container = document.getElementById('canvas-container');
-                var fallback = document.getElementById('fallback');
-                var initAttempts = 0;
-                var maxAttempts = 15; // generous
-                
-                function init() {
-                    if (typeof THREE === 'undefined') {
-                        initAttempts++;
-                        if (initAttempts < maxAttempts) {
-                            setTimeout(init, 400);
-                        } else {
-                            fallback.classList.add('show');
-                            fallback.innerHTML = '⚠️ Three.js failed to load after ' + maxAttempts + ' attempts.';
-                            console.error('Three.js load timeout.');
-                        }
-                        return;
+                const canvas = document.getElementById('canvas');
+                const ctx = canvas.getContext('2d');
+                let width, height;
+
+                function resize() {
+                    width = window.innerWidth;
+                    height = window.innerHeight;
+                    canvas.width = width;
+                    canvas.height = height;
+                }
+                window.addEventListener('resize', resize);
+                resize();
+
+                // Robot parameters
+                const mainColor = 'MAIN_COLOR';
+                const accentColor = 'ACCENT_COLOR';
+                const kimonoColor = 'KIMONO_COLOR';
+                const beltColor = 'BELT_COLOR';
+                const headbandColor = 'HEADBAND_COLOR';
+                const isKata = IS_KATA;
+                const animCommand = 'ANIM_CMD';
+                const kataSequence = KATA_SEQUENCE;
+
+                // Animation state
+                let animTime = 0;
+                let isAnimating = false;
+                let loopAnimation = false;
+                let walkCycle = 0;
+                let hasStarted = false;
+                let bowActive = false;
+                let bowProgress = 0;
+
+                // Kata state
+                let kataRunning = false;
+                let kataActionIndex = 0;
+                let kataActionTime = 0;
+                let kataAction = null;
+                let kataComplete = false;
+
+                // Robot parts positions (relative to center)
+                const bodyX = 0, bodyY = 0;
+                const headSize = 40;
+                const torsoHeight = 80;
+                const torsoWidth = 60;
+                const armLen = 60;
+                const legLen = 70;
+                const shoulderY = -20;
+                const hipY = 40;
+
+                // Drawing functions
+                function drawRobot(angle, swing) {
+                    ctx.save();
+                    ctx.translate(width/2, height/2 + 30); // shift down a bit
+
+                    // ---- Body (torso) ----
+                    ctx.fillStyle = kimonoColor;
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    ctx.shadowBlur = 10;
+                    ctx.fillRect(-torsoWidth/2, -torsoHeight/2, torsoWidth, torsoHeight);
+                    ctx.shadowBlur = 0;
+
+                    // Belt
+                    ctx.fillStyle = beltColor;
+                    ctx.fillRect(-torsoWidth/2 + 5, torsoHeight/2 - 8, torsoWidth - 10, 10);
+
+                    // Chest detail
+                    ctx.fillStyle = accentColor;
+                    ctx.fillRect(-15, -torsoHeight/2 + 10, 30, 15);
+
+                    // ---- Head ----
+                    ctx.save();
+                    ctx.translate(0, -torsoHeight/2 - headSize/2 + 5);
+                    // Head base
+                    ctx.fillStyle = '#aaaaaa';
+                    ctx.fillRect(-headSize/2, -headSize/2, headSize, headSize);
+                    // Visor
+                    ctx.fillStyle = '#00ddff';
+                    ctx.shadowColor = '#00bbff';
+                    ctx.shadowBlur = 15;
+                    ctx.fillRect(-headSize/3, -headSize/6, headSize*2/3, headSize/4);
+                    ctx.shadowBlur = 0;
+                    // Antenna
+                    ctx.fillStyle = '#ffaa00';
+                    ctx.fillRect(-3, -headSize/2 - 15, 6, 15);
+                    ctx.beginPath();
+                    ctx.arc(0, -headSize/2 - 15, 6, 0, 2*Math.PI);
+                    ctx.fill();
+                    // Headband (kata)
+                    if (isKata) {
+                        ctx.strokeStyle = headbandColor;
+                        ctx.lineWidth = 6;
+                        ctx.beginPath();
+                        ctx.arc(0, 0, headSize/2 + 2, 0, 2*Math.PI);
+                        ctx.stroke();
                     }
-                    
-                    var OrbitControlsCtor = THREE.OrbitControls || window.OrbitControls;
-                    if (!OrbitControlsCtor) {
-                        initAttempts++;
-                        if (initAttempts < maxAttempts + 5) {
-                            setTimeout(init, 300);
+                    ctx.restore();
+
+                    // ---- Arms ----
+                    const shoulderX = torsoWidth/2 + 5;
+                    const shoulderYPos = -torsoHeight/2 + 10;
+
+                    // Left arm
+                    ctx.save();
+                    ctx.translate(-shoulderX, shoulderYPos);
+                    const leftSwing = (animCommand === 'walk' || animCommand === 'run') ? -swing : 0;
+                    ctx.rotate(leftSwing * 0.5);
+                    ctx.fillStyle = kimonoColor;
+                    ctx.fillRect(-8, 0, 16, armLen);
+                    // Hand
+                    ctx.fillStyle = '#cccccc';
+                    ctx.fillRect(-6, armLen-5, 12, 12);
+                    ctx.restore();
+
+                    // Right arm
+                    ctx.save();
+                    ctx.translate(shoulderX, shoulderYPos);
+                    const rightSwing = (animCommand === 'walk' || animCommand === 'run') ? swing : 0;
+                    ctx.rotate(rightSwing * 0.5);
+                    ctx.fillStyle = kimonoColor;
+                    ctx.fillRect(-8, 0, 16, armLen);
+                    ctx.fillStyle = '#cccccc';
+                    ctx.fillRect(-6, armLen-5, 12, 12);
+                    ctx.restore();
+
+                    // ---- Legs ----
+                    const hipYPos = torsoHeight/2 - 5;
+                    const legWidth = 12;
+
+                    // Left leg
+                    ctx.save();
+                    ctx.translate(-torsoWidth/4, hipYPos);
+                    const leftLegSwing = (animCommand === 'walk' || animCommand === 'run') ? -swing : 0;
+                    ctx.rotate(leftLegSwing * 0.5);
+                    ctx.fillStyle = kimonoColor;
+                    ctx.fillRect(-legWidth/2, 0, legWidth, legLen);
+                    ctx.fillStyle = '#333333';
+                    ctx.fillRect(-legWidth/2 - 3, legLen-5, legWidth+6, 8);
+                    ctx.restore();
+
+                    // Right leg
+                    ctx.save();
+                    ctx.translate(torsoWidth/4, hipYPos);
+                    const rightLegSwing = (animCommand === 'walk' || animCommand === 'run') ? swing : 0;
+                    ctx.rotate(rightLegSwing * 0.5);
+                    ctx.fillStyle = kimonoColor;
+                    ctx.fillRect(-legWidth/2, 0, legWidth, legLen);
+                    ctx.fillStyle = '#333333';
+                    ctx.fillRect(-legWidth/2 - 3, legLen-5, legWidth+6, 8);
+                    ctx.restore();
+
+                    ctx.restore(); // restore from center translation
+                }
+
+                // Animation update
+                function update(delta) {
+                    if (kataRunning) {
+                        // Kata logic
+                        if (kataComplete) return;
+                        kataActionTime += delta;
+                        if (kataAction === null) return;
+                        const type = kataAction[0];
+                        const duration = kataAction[1];
+                        if (type === 'idle') {
+                            if (kataActionTime >= duration) {
+                                nextKataAction();
+                            }
                             return;
-                        } else {
-                            fallback.classList.add('show');
-                            fallback.innerHTML = '⚠️ OrbitControls not loaded.';
-                            console.error('OrbitControls not found.');
-                            return;
                         }
-                    }
-                    
-                    try {
-                        // Ensure container has dimensions
-                        var w = container.clientWidth || window.innerWidth;
-                        var h = container.clientHeight || window.innerHeight;
-                        if (w === 0 || h === 0) {
-                            // Give it a moment to render
-                            setTimeout(init, 100);
-                            return;
-                        }
-                        
-                        var scene = new THREE.Scene();
-                        scene.background = new THREE.Color(0x0a0a0f);
-                        
-                        var camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
-                        camera.position.set(3, 2, 4);
-                        camera.lookAt(0, 0.8, 0);
-                        
-                        var renderer = new THREE.WebGLRenderer({ antialias: true });
-                        renderer.setSize(w, h);
-                        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-                        renderer.shadowMap.enabled = true;
-                        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-                        renderer.toneMapping = THREE.ACESFilmicToneMapping;
-                        renderer.toneMappingExposure = 1.2;
-                        container.appendChild(renderer.domElement);
-                        
-                        var controls = new OrbitControlsCtor(camera, renderer.domElement);
-                        controls.target.set(0, 0.8, 0);
-                        controls.enableDamping = true;
-                        controls.dampingFactor = 0.05;
-                        controls.minDistance = 2;
-                        controls.maxDistance = 10;
-                        controls.update();
-                        
-                        // Lighting
-                        var ambientLight = new THREE.AmbientLight(0x404060);
-                        scene.add(ambientLight);
-                        var mainLight = new THREE.DirectionalLight(0xffffff, 1.5);
-                        mainLight.position.set(4, 6, 5);
-                        mainLight.castShadow = true;
-                        scene.add(mainLight);
-                        var fillLight = new THREE.DirectionalLight(0x4488ff, 0.5);
-                        fillLight.position.set(-3, 1, 4);
-                        scene.add(fillLight);
-                        var rimLight = new THREE.DirectionalLight(0xffffff, 0.8);
-                        rimLight.position.set(0, 2, -5);
-                        scene.add(rimLight);
-                        
-                        var gridHelper = new THREE.GridHelper(5, 10, 0x445566, 0x223344);
-                        gridHelper.position.y = -0.01;
-                        scene.add(gridHelper);
-                        
-                        // ---- Robot Construction ----
-                        var COLOR = MAIN_COLOR;
-                        var ACCENT = ACCENT_COLOR;
-                        var KIMONO = KIMONO_COLOR;
-                        var BELT = BELT_COLOR;
-                        var HEADBAND = HEADBAND_COLOR;
-                        var IS_KATA = IS_KATA;
-                        
-                        var robot = new THREE.Group();
-                        
-                        // Torso
-                        var torsoGeo = new THREE.BoxGeometry(0.9, 1.0, 0.6);
-                        var torsoMat = new THREE.MeshStandardMaterial({ color: KIMONO, roughness: 0.3, metalness: 0.7 });
-                        var torso = new THREE.Mesh(torsoGeo, torsoMat);
-                        torso.position.y = 0.9;
-                        torso.castShadow = true;
-                        robot.add(torso);
-                        
-                        // Chest detail
-                        var chestGeo = new THREE.BoxGeometry(0.6, 0.3, 0.1);
-                        var chestMat = new THREE.MeshStandardMaterial({ color: ACCENT, roughness: 0.4, metalness: 0.8 });
-                        var chest = new THREE.Mesh(chestGeo, chestMat);
-                        chest.position.set(0, 1.0, 0.35);
-                        robot.add(chest);
-                        
-                        // Belt (kata mode)
-                        if (IS_KATA) {
-                            var beltGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.12, 16);
-                            var beltMat = new THREE.MeshStandardMaterial({ color: BELT, roughness: 0.3, metalness: 0.2 });
-                            var belt = new THREE.Mesh(beltGeo, beltMat);
-                            belt.position.set(0, 0.45, 0);
-                            belt.rotation.x = Math.PI/2;
-                            robot.add(belt);
-                        }
-                        
-                        // Head
-                        var headGroup = new THREE.Group();
-                        var headGeo = new THREE.BoxGeometry(0.5, 0.45, 0.45);
-                        var headMat = new THREE.MeshStandardMaterial({ color: 0xaaaaaa, roughness: 0.3, metalness: 0.5 });
-                        var head = new THREE.Mesh(headGeo, headMat);
-                        head.position.y = 0.15;
-                        head.castShadow = true;
-                        headGroup.add(head);
-                        
-                        // Visor
-                        var visorGeo = new THREE.BoxGeometry(0.35, 0.12, 0.05);
-                        var visorMat = new THREE.MeshStandardMaterial({ color: 0x00ddff, emissive: 0x00bbff, emissiveIntensity: 0.8 });
-                        var visor = new THREE.Mesh(visorGeo, visorMat);
-                        visor.position.set(0, 0.15, 0.25);
-                        headGroup.add(visor);
-                        
-                        // Headband (kata mode)
-                        if (IS_KATA) {
-                            var headbandGeo = new THREE.TorusGeometry(0.28, 0.04, 8, 16);
-                            var headbandMat = new THREE.MeshStandardMaterial({ color: HEADBAND, roughness: 0.4, metalness: 0.3 });
-                            var headband = new THREE.Mesh(headbandGeo, headbandMat);
-                            headband.position.set(0, 0.15, 0);
-                            headband.rotation.x = Math.PI/2;
-                            headGroup.add(headband);
-                        }
-                        
-                        // Antenna
-                        var antennaMat = new THREE.MeshStandardMaterial({ color: 0xffaa00, emissive: 0xff8800, emissiveIntensity: 0.3 });
-                        var antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.2), antennaMat);
-                        antenna.position.set(0, 0.45, 0);
-                        headGroup.add(antenna);
-                        var antennaBall = new THREE.Mesh(new THREE.SphereGeometry(0.05), antennaMat);
-                        antennaBall.position.set(0, 0.55, 0);
-                        headGroup.add(antennaBall);
-                        
-                        headGroup.position.set(0, 1.4, 0);
-                        robot.add(headGroup);
-                        
-                        // Shoulders
-                        var shoulderMat = new THREE.MeshStandardMaterial({ color: KIMONO, roughness: 0.4, metalness: 0.6 });
-                        var shoulderL = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), shoulderMat);
-                        shoulderL.position.set(-0.6, 1.2, 0);
-                        robot.add(shoulderL);
-                        var shoulderR = new THREE.Mesh(new THREE.SphereGeometry(0.18, 8, 8), shoulderMat);
-                        shoulderR.position.set(0.6, 1.2, 0);
-                        robot.add(shoulderR);
-                        
-                        // Arms
-                        var armGroupL = new THREE.Group();
-                        var armGroupR = new THREE.Group();
-                        var upperArmMat = new THREE.MeshStandardMaterial({ color: KIMONO, roughness: 0.3, metalness: 0.7 });
-                        var lowerArmMat = new THREE.MeshStandardMaterial({ color: KIMONO, roughness: 0.4, metalness: 0.6 });
-                        
-                        // Left arm
-                        var upperL = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.2), upperArmMat);
-                        upperL.position.y = -0.25;
-                        armGroupL.add(upperL);
-                        var lowerL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), lowerArmMat);
-                        lowerL.position.y = -0.6;
-                        armGroupL.add(lowerL);
-                        var handMat = new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.8, roughness: 0.2 });
-                        var handL = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), handMat);
-                        handL.position.y = -0.85;
-                        armGroupL.add(handL);
-                        armGroupL.position.set(-0.6, 1.2, 0);
-                        robot.add(armGroupL);
-                        
-                        // Right arm
-                        var upperR = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.5, 0.2), upperArmMat);
-                        upperR.position.y = -0.25;
-                        armGroupR.add(upperR);
-                        var lowerR = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.5, 0.18), lowerArmMat);
-                        lowerR.position.y = -0.6;
-                        armGroupR.add(lowerR);
-                        var handR = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.15), handMat);
-                        handR.position.y = -0.85;
-                        armGroupR.add(handR);
-                        armGroupR.position.set(0.6, 1.2, 0);
-                        robot.add(armGroupR);
-                        
-                        // Legs
-                        var legGroupL = new THREE.Group();
-                        var legGroupR = new THREE.Group();
-                        var upperLegMat = new THREE.MeshStandardMaterial({ color: KIMONO, roughness: 0.5, metalness: 0.4 });
-                        var lowerLegMat = new THREE.MeshStandardMaterial({ color: KIMONO, roughness: 0.5, metalness: 0.3 });
-                        
-                        // Left leg
-                        var upperLegL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 0.25), upperLegMat);
-                        upperLegL.position.y = -0.225;
-                        legGroupL.add(upperLegL);
-                        var lowerLegL = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.45, 0.22), lowerLegMat);
-                        lowerLegL.position.y = -0.55;
-                        legGroupL.add(lowerLegL);
-                        var footMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.6, metalness: 0.2 });
-                        var footL = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.4), footMat);
-                        footL.position.set(0, -0.8, 0.05);
-                        legGroupL.add(footL);
-                        legGroupL.position.set(-0.3, 0.4, 0);
-                        robot.add(legGroupL);
-                        
-                        // Right leg
-                        var upperLegR = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 0.25), upperLegMat);
-                        upperLegR.position.y = -0.225;
-                        legGroupR.add(upperLegR);
-                        var lowerLegR = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.45, 0.22), lowerLegMat);
-                        lowerLegR.position.y = -0.55;
-                        legGroupR.add(lowerLegR);
-                        var footR = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.1, 0.4), footMat);
-                        footR.position.set(0, -0.8, 0.05);
-                        legGroupR.add(footR);
-                        legGroupR.position.set(0.3, 0.4, 0);
-                        robot.add(legGroupR);
-                        
-                        scene.add(robot);
-                        
-                        // ---- Animation State ----
-                        let animCommand = 'ANIM_CMD';
-                        let animTime = 0;
-                        let isAnimating = false;
-                        let loopAnimation = false;
-                        let walkCycle = 0;
-                        let hasStarted = false;
-                        
-                        // Kata state
-                        let kataSequence = KATA_SEQUENCE;
-                        let isKataRunning = false;
-                        let kataActionIndex = 0;
-                        let kataActionTime = 0;
-                        let kataAction = null;
-                        let kataComplete = false;
-                        let bowActive = false;
-                        let bowProgress = 0;
-                        
-                        function resetRobot() {
-                            armGroupL.rotation.x = 0; armGroupL.rotation.z = 0;
-                            armGroupR.rotation.x = 0; armGroupR.rotation.z = 0;
-                            legGroupL.rotation.x = 0; legGroupL.rotation.z = 0;
-                            legGroupR.rotation.x = 0; legGroupR.rotation.z = 0;
-                            robot.position.y = 0; robot.rotation.x = 0; robot.rotation.z = 0;
-                            headGroup.rotation.x = 0; headGroup.rotation.y = 0;
-                            walkCycle = 0; controls.target.set(0, 0.8, 0);
-                            bowActive = false; bowProgress = 0;
-                        }
-                        
-                        function startKata() {
-                            if (kataSequence.length === 0) return;
-                            resetRobot();
-                            isKataRunning = true;
-                            kataActionIndex = 0;
-                            kataActionTime = 0;
-                            kataComplete = false;
-                            startNextKataAction();
-                        }
-                        
-                        function startNextKataAction() {
-                            if (kataActionIndex >= kataSequence.length) {
-                                isKataRunning = false;
-                                kataComplete = true;
-                                resetRobot();
-                                return;
-                            }
-                            const action = kataSequence[kataActionIndex];
-                            kataAction = action;
-                            kataActionTime = 0;
-                            const type = action[0];
-                            if (type === 'walk' || type === 'run') {
-                                loopAnimation = true;
-                                isAnimating = true;
-                                hasStarted = true;
-                                animCommand = type;
-                            } else if (type === 'idle') {
-                                loopAnimation = false;
-                                isAnimating = false;
-                                hasStarted = false;
-                            } else {
-                                loopAnimation = false;
-                                isAnimating = true;
-                                hasStarted = true;
-                                animCommand = type;
-                                if (type === 'bow') { bowActive = true; bowProgress = 0; }
-                            }
-                        }
-                        
-                        function updateKata(delta) {
-                            if (!isKataRunning || kataComplete) return;
-                            kataActionTime += delta;
-                            const action = kataAction;
-                            if (!action) return;
-                            const type = action[0];
-                            const duration = action[1];
-                            
-                            if (type === 'idle') {
-                                if (kataActionTime >= duration) {
-                                    kataActionIndex++;
-                                    startNextKataAction();
-                                }
-                                return;
-                            }
-                            
-                            if (type === 'walk' || type === 'run') {
-                                if (kataActionTime >= duration) {
-                                    isAnimating = false;
-                                    loopAnimation = false;
-                                    resetRobot();
-                                    kataActionIndex++;
-                                    startNextKataAction();
-                                }
-                                return;
-                            }
-                            
-                            if (type === 'jump' || type === 'wave' || type === 'backflip') {
-                                if (!isAnimating && hasStarted) {
-                                    hasStarted = false;
-                                    kataActionIndex++;
-                                    startNextKataAction();
-                                }
-                                return;
-                            }
-                            
-                            if (type === 'bow') {
-                                bowProgress += delta / duration;
-                                if (bowProgress >= 1) {
-                                    bowProgress = 1;
-                                    if (kataActionTime >= duration + 0.2) {
-                                        bowActive = false;
-                                        resetRobot();
-                                        kataActionIndex++;
-                                        startNextKataAction();
-                                        return;
-                                    }
-                                }
-                                const t = bowProgress;
-                                const ease = t < 0.5 ? 2*t*t : 1 - Math.pow(-2*t+2, 2)/2;
-                                robot.rotation.x = ease * 0.4;
-                                armGroupL.rotation.x = -0.5 * ease;
-                                armGroupR.rotation.x = -0.5 * ease;
-                                controls.target.set(0, 0.8 - ease * 0.3, 0);
-                                return;
-                            }
-                        }
-                        
-                        // Initialize: kata or command
-                        if (kataSequence.length > 0) {
-                            startKata();
-                        } else {
-                            const valid = ['walk','run','jump','wave','backflip'];
-                            if (valid.includes(animCommand)) {
-                                startCommand(animCommand);
-                            } else {
-                                resetRobot();
-                            }
-                        }
-                        
-                        function startCommand(cmd) {
-                            resetRobot();
-                            animTime = 0;
+                        if (type === 'walk' || type === 'run') {
+                            animCommand = type;
+                            loopAnimation = true;
                             isAnimating = true;
-                            loopAnimation = false;
                             hasStarted = true;
-                            switch(cmd) {
-                                case 'walk': loopAnimation = true; break;
-                                case 'run': loopAnimation = true; break;
-                                case 'jump': loopAnimation = false; break;
-                                case 'wave': loopAnimation = false; break;
-                                case 'backflip': loopAnimation = false; break;
-                                default: isAnimating = false; hasStarted = false; break;
+                            if (kataActionTime >= duration) {
+                                isAnimating = false;
+                                loopAnimation = false;
+                                resetPose();
+                                nextKataAction();
                             }
+                            return;
                         }
-                        
-                        const clock = new THREE.Clock();
-                        
-                        function animate() {
-                            requestAnimationFrame(animate);
-                            const delta = clock.getDelta();
-                            const time = clock.getElapsedTime();
-                            
-                            if (isKataRunning) {
-                                updateKata(delta);
-                            } else {
-                                if (isAnimating && hasStarted) {
-                                    animTime += delta;
-                                    if (loopAnimation) {
-                                        const speed = animCommand === 'walk' ? 1.0 : 2.0;
-                                        walkCycle += delta * speed * 2.5;
-                                        const swing = Math.sin(walkCycle) * 0.5;
-                                        legGroupL.rotation.x = swing;
-                                        legGroupR.rotation.x = -swing;
-                                        armGroupL.rotation.x = -swing * 0.8;
-                                        armGroupR.rotation.x = swing * 0.8;
-                                        robot.position.y = Math.abs(Math.sin(walkCycle)) * 0.05;
-                                    } else {
-                                        let duration = 1.2;
-                                        switch(animCommand) {
-                                            case 'jump': duration = 1.2; break;
-                                            case 'wave': duration = 2.0; break;
-                                            case 'backflip': duration = 1.5; break;
-                                        }
-                                        const progress = Math.min(animTime / duration, 1);
-                                        if (progress >= 1) {
-                                            isAnimating = false;
-                                            resetRobot();
-                                        } else {
-                                            const t = progress < 0.5 ? 2*progress*progress : 1 - Math.pow(-2*progress+2, 2)/2;
-                                            switch(animCommand) {
-                                                case 'jump':
-                                                    const jumpHeight = t < 0.5 ? t*2 : 2*(1-t);
-                                                    robot.position.y = jumpHeight * 0.6;
-                                                    controls.target.set(0, robot.position.y + 0.8, 0);
-                                                    armGroupL.rotation.x = -1.2 * (1 - Math.abs(progress-0.5)*2);
-                                                    armGroupR.rotation.x = -1.2 * (1 - Math.abs(progress-0.5)*2);
-                                                    legGroupL.rotation.x = 0.3 * (1 - Math.abs(progress-0.5)*2);
-                                                    legGroupR.rotation.x = 0.3 * (1 - Math.abs(progress-0.5)*2);
-                                                    break;
-                                                case 'wave':
-                                                    armGroupR.rotation.x = -1.2 + Math.sin(time * 6) * 0.5;
-                                                    armGroupR.rotation.z = 0.5;
-                                                    headGroup.rotation.y = 0.4;
-                                                    break;
-                                                case 'backflip':
-                                                    const angle = -t * Math.PI * 2;
-                                                    robot.rotation.x = angle;
-                                                    const jumpHeight = t < 0.5 ? t * 2 * 1.2 : 2 * (1 - t) * 1.2;
-                                                    robot.position.y = jumpHeight;
-                                                    controls.target.set(0, jumpHeight + 0.8, 0);
-                                                    armGroupL.rotation.x = -0.7;
-                                                    armGroupR.rotation.x = -0.7;
-                                                    legGroupL.rotation.x = 0.4;
-                                                    legGroupR.rotation.x = 0.4;
-                                                    break;
-                                            }
-                                        }
-                                    }
+                        if (type === 'jump' || type === 'wave' || type === 'backflip') {
+                            animCommand = type;
+                            loopAnimation = false;
+                            isAnimating = true;
+                            hasStarted = true;
+                            if (!isAnimating && hasStarted) {
+                                hasStarted = false;
+                                nextKataAction();
+                            }
+                            return;
+                        }
+                        if (type === 'bow') {
+                            bowActive = true;
+                            bowProgress += delta / duration;
+                            if (bowProgress >= 1) {
+                                bowProgress = 1;
+                                if (kataActionTime >= duration + 0.2) {
+                                    bowActive = false;
+                                    resetPose();
+                                    nextKataAction();
                                 }
                             }
-                            
-                            controls.update();
-                            renderer.render(scene, camera);
+                            return;
                         }
-                        animate();
-                        
-                        // Resize
-                        window.addEventListener('resize', function() {
-                            var w = container.clientWidth;
-                            var h = container.clientHeight;
-                            renderer.setSize(w, h);
-                            camera.aspect = w / h;
-                            camera.updateProjectionMatrix();
-                        });
-                    } catch (e) {
-                        fallback.classList.add('show');
-                        fallback.innerHTML = '⚠️ Error: ' + e.message + '<br><small>See console for details.</small>';
-                        console.error('Init error:', e);
+                    } else {
+                        // Normal command animation
+                        if (isAnimating && hasStarted) {
+                            animTime += delta;
+                            if (loopAnimation) {
+                                const speed = animCommand === 'walk' ? 2.0 : 3.0;
+                                walkCycle += delta * speed;
+                            } else {
+                                let duration = 1.2;
+                                if (animCommand === 'jump') duration = 1.2;
+                                else if (animCommand === 'wave') duration = 2.0;
+                                else if (animCommand === 'backflip') duration = 1.5;
+                                if (animTime >= duration) {
+                                    isAnimating = false;
+                                    resetPose();
+                                }
+                            }
+                        }
                     }
                 }
-                
-                // Start after a short delay
-                setTimeout(init, 300);
+
+                function nextKataAction() {
+                    kataActionIndex++;
+                    if (kataActionIndex >= kataSequence.length) {
+                        kataRunning = false;
+                        kataComplete = true;
+                        resetPose();
+                        return;
+                    }
+                    kataAction = kataSequence[kataActionIndex];
+                    kataActionTime = 0;
+                    const type = kataAction[0];
+                    if (type === 'idle') {
+                        loopAnimation = false;
+                        isAnimating = false;
+                        hasStarted = false;
+                    } else if (type === 'walk' || type === 'run') {
+                        loopAnimation = true;
+                        isAnimating = true;
+                        hasStarted = true;
+                        animCommand = type;
+                    } else if (type === 'bow') {
+                        bowActive = true;
+                        bowProgress = 0;
+                        isAnimating = false;
+                        loopAnimation = false;
+                        hasStarted = false;
+                    } else {
+                        loopAnimation = false;
+                        isAnimating = true;
+                        hasStarted = true;
+                        animCommand = type;
+                    }
+                }
+
+                function resetPose() {
+                    walkCycle = 0;
+                    bowActive = false;
+                    bowProgress = 0;
+                    // not resetting animCommand, but will be overridden
+                }
+
+                // Main draw loop
+                let prevTime = performance.now();
+
+                function draw(time) {
+                    const delta = (time - prevTime) / 1000;
+                    prevTime = time;
+                    // Cap delta to avoid jumps
+                    const dt = Math.min(delta, 0.05);
+                    update(dt);
+
+                    // Clear
+                    ctx.clearRect(0, 0, width, height);
+
+                    // Background grid
+                    ctx.strokeStyle = '#223344';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < width; i += 50) {
+                        ctx.beginPath();
+                        ctx.moveTo(i, 0);
+                        ctx.lineTo(i, height);
+                        ctx.stroke();
+                    }
+                    for (let i = 0; i < height; i += 50) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, i);
+                        ctx.lineTo(width, i);
+                        ctx.stroke();
+                    }
+
+                    // Determine swing for walk/run
+                    let swing = 0;
+                    if (animCommand === 'walk' || animCommand === 'run') {
+                        swing = Math.sin(walkCycle) * 0.5;
+                    }
+
+                    // Apply bow effect
+                    let bowAngle = 0;
+                    if (bowActive) {
+                        const ease = bowProgress < 0.5 ? 2*bowProgress*bowProgress : 1 - Math.pow(-2*bowProgress+2, 2)/2;
+                        bowAngle = ease * 0.4;
+                    }
+
+                    // Draw robot with swing and bow
+                    ctx.save();
+                    ctx.translate(0, 0); // base
+                    if (bowAngle !== 0) {
+                        ctx.rotate(bowAngle);
+                    }
+                    drawRobot(bowAngle, swing);
+                    ctx.restore();
+
+                    // Draw command text
+                    ctx.fillStyle = '#8899bb';
+                    ctx.font = '18px Arial';
+                    ctx.fillText('Command: ' + animCommand, 20, 30);
+
+                    requestAnimationFrame(draw);
+                }
+
+                // Initialize kata if needed
+                if (kataSequence.length > 0) {
+                    kataRunning = true;
+                    kataActionIndex = 0;
+                    kataActionTime = 0;
+                    kataComplete = false;
+                    kataAction = kataSequence[0];
+                    const type = kataAction[0];
+                    if (type === 'idle') {
+                        loopAnimation = false;
+                        isAnimating = false;
+                        hasStarted = false;
+                    } else if (type === 'walk' || type === 'run') {
+                        loopAnimation = true;
+                        isAnimating = true;
+                        hasStarted = true;
+                        animCommand = type;
+                    } else if (type === 'bow') {
+                        bowActive = true;
+                        bowProgress = 0;
+                        isAnimating = false;
+                        loopAnimation = false;
+                        hasStarted = false;
+                    } else {
+                        loopAnimation = false;
+                        isAnimating = true;
+                        hasStarted = true;
+                        animCommand = type;
+                    }
+                } else {
+                    // Start with idle
+                    resetPose();
+                    if (animCommand !== 'idle' && validCommands.includes(animCommand)) {
+                        isAnimating = true;
+                        hasStarted = true;
+                        if (animCommand === 'walk' || animCommand === 'run') {
+                            loopAnimation = true;
+                        }
+                    }
+                }
+
+                // Start animation loop
+                requestAnimationFrame(draw);
             })();
         </script>
     </body>
     </html>
     """
+
+    # Replace placeholders
     html = html_template.replace('ROBOT_NAME', robot_name)
     html = html.replace('COMMAND', command if command else 'Idle')
-    html = html.replace('ANIM_CMD', anim_cmd)
-    html = html.replace('MAIN_COLOR', str(main_color))
-    html = html.replace('ACCENT_COLOR', str(accent))
-    html = html.replace('KIMONO_COLOR', str(kimono_color))
-    html = html.replace('BELT_COLOR', str(belt_color))
-    html = html.replace('HEADBAND_COLOR', str(headband_color))
+    html = html.replace('MAIN_COLOR', main_color)
+    html = html.replace('ACCENT_COLOR', f'rgb({accent_rgb[0]},{accent_rgb[1]},{accent_rgb[2]})')
+    html = html.replace('KIMONO_COLOR', kimono_color)
+    html = html.replace('BELT_COLOR', belt_color)
+    html = html.replace('HEADBAND_COLOR', headband_color)
     html = html.replace('IS_KATA', 'true' if is_kata else 'false')
+    html = html.replace('ANIM_CMD', anim_cmd)
     html = html.replace('KATA_SEQUENCE', kata_sequence_json)
+    # Also add valid commands for the JS
+    valid_commands_js = ['walk', 'run', 'jump', 'wave', 'backflip']
+    html = html.replace('validCommands', JSON.stringify(valid_commands_js))
+    # We'll inject validCommands into the JS by replacing a placeholder
+    html = html.replace('const validCommands = [];', f'const validCommands = {json.dumps(valid_commands_js)};')
+
+    # Fix: the JS uses validCommands, but we defined it with a placeholder that we replace
+    # Actually we can just define it directly in the JS string above, but for clarity we'll replace
+    # The template has a placeholder `// VALID_COMMANDS_PLACEHOLDER` which we'll replace.
+    # I'll adjust the template to include a placeholder.
+    # Since we already have a placeholder, let's add it.
+    # I'll modify the template to have a specific string to replace.
+    # For simplicity, I'll just replace the line that defines validCommands.
+    html = html.replace('const validCommands = [];', f'const validCommands = {json.dumps(valid_commands_js)};')
+
     return html
 
 # ========== SESSION STATE ==========
@@ -825,7 +720,7 @@ with col_view:
         st.session_state.kata
     )
     
-    # Encode HTML as data URI and use st.iframe (no scrolling parameter)
+    # Encode as data URI and use st.iframe
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
     st.iframe(data_uri, height=650)
 
