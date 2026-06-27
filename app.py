@@ -129,7 +129,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----- Build the 2D Canvas viewer HTML -----
+# ----- Build the 2D Canvas viewer HTML (fixed animations) -----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     # Get colors for the robot
     color_map = {"Red Titan": "#ff3333", "Blue Sentinel": "#3388ff", "Green Viper": "#33cc66", "Gold Phoenix": "#ffaa00", "Silver Ghost": "#cccccc"}
@@ -161,7 +161,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Build the HTML with canvas and animation
+    # Build the HTML with canvas and animation (fully rewritten JS)
     html_template = """
     <!DOCTYPE html>
     <html>
@@ -199,41 +199,38 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 const headbandColor = 'HEADBAND_COLOR';
                 const isKata = IS_KATA;
                 const kataSequence = KATA_SEQUENCE;
-                const animCommand = 'ANIM_CMD';
+                const initialCommand = 'ANIM_CMD';
                 const validCommands = []; // will be replaced
 
-                // Animation state
-                let animTime = 0;
-                let isAnimating = false;
-                let loopAnimation = false;
-                let walkCycle = 0;
-                let hasStarted = false;
-                let bowActive = false;
-                let bowProgress = 0;
-
-                // Kata state
-                let kataRunning = false;
-                let kataActionIndex = 0;
-                let kataActionTime = 0;
-                let kataAction = null;
-                let kataComplete = false;
-
-                // Robot parts positions (relative to center)
-                const bodyX = 0, bodyY = 0;
+                // Robot parts dimensions
                 const headSize = 40;
                 const torsoHeight = 80;
                 const torsoWidth = 60;
                 const armLen = 60;
                 const legLen = 70;
-                const shoulderY = -20;
-                const hipY = 40;
 
-                // Drawing functions
-                function drawRobot(angle, swing) {
+                // ---- State ----
+                let currentCommand = 'idle';      // walk, run, jump, wave, backflip, bow, idle
+                let isLooping = false;            // true for walk/run
+                let isAnimating = false;          // true when an animation is playing (non-loop)
+                let animTimer = 0;
+                let walkCycle = 0;
+                let bowActive = false;
+                let bowProgress = 0;
+
+                // Kata state
+                let kataRunning = false;
+                let kataIndex = 0;
+                let kataTimer = 0;
+                let kataComplete = false;
+                let kataAction = null;             // ['type', duration]
+
+                // ---- Drawing functions ----
+                function drawRobot(swing) {
                     ctx.save();
-                    ctx.translate(width/2, height/2 + 30); // shift down a bit
+                    ctx.translate(width/2, height/2 + 30);
 
-                    // ---- Body (torso) ----
+                    // ---- Torso ----
                     ctx.fillStyle = kimonoColor;
                     ctx.shadowColor = 'rgba(0,0,0,0.5)';
                     ctx.shadowBlur = 10;
@@ -251,7 +248,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     // ---- Head ----
                     ctx.save();
                     ctx.translate(0, -torsoHeight/2 - headSize/2 + 5);
-                    // Head base
                     ctx.fillStyle = '#aaaaaa';
                     ctx.fillRect(-headSize/2, -headSize/2, headSize, headSize);
                     // Visor
@@ -278,25 +274,33 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
                     // ---- Arms ----
                     const shoulderX = torsoWidth/2 + 5;
-                    const shoulderYPos = -torsoHeight/2 + 10;
+                    const shoulderY = -torsoHeight/2 + 10;
 
                     // Left arm
                     ctx.save();
-                    ctx.translate(-shoulderX, shoulderYPos);
-                    const leftSwing = (animCommand === 'walk' || animCommand === 'run') ? -swing : 0;
-                    ctx.rotate(leftSwing * 0.5);
+                    ctx.translate(-shoulderX, shoulderY);
+                    let leftSwing = 0;
+                    if (currentCommand === 'walk' || currentCommand === 'run') {
+                        leftSwing = -swing * 0.5;
+                    }
+                    ctx.rotate(leftSwing);
                     ctx.fillStyle = kimonoColor;
                     ctx.fillRect(-8, 0, 16, armLen);
-                    // Hand
                     ctx.fillStyle = '#cccccc';
                     ctx.fillRect(-6, armLen-5, 12, 12);
                     ctx.restore();
 
                     // Right arm
                     ctx.save();
-                    ctx.translate(shoulderX, shoulderYPos);
-                    const rightSwing = (animCommand === 'walk' || animCommand === 'run') ? swing : 0;
-                    ctx.rotate(rightSwing * 0.5);
+                    ctx.translate(shoulderX, shoulderY);
+                    let rightSwing = 0;
+                    if (currentCommand === 'walk' || currentCommand === 'run') {
+                        rightSwing = swing * 0.5;
+                    } else if (currentCommand === 'wave') {
+                        // Wave: raise right arm up and wiggle
+                        rightSwing = -1.2 + Math.sin(Date.now() / 200) * 0.5;
+                    }
+                    ctx.rotate(rightSwing);
                     ctx.fillStyle = kimonoColor;
                     ctx.fillRect(-8, 0, 16, armLen);
                     ctx.fillStyle = '#cccccc';
@@ -304,14 +308,17 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     ctx.restore();
 
                     // ---- Legs ----
-                    const hipYPos = torsoHeight/2 - 5;
+                    const hipY = torsoHeight/2 - 5;
                     const legWidth = 12;
 
                     // Left leg
                     ctx.save();
-                    ctx.translate(-torsoWidth/4, hipYPos);
-                    const leftLegSwing = (animCommand === 'walk' || animCommand === 'run') ? -swing : 0;
-                    ctx.rotate(leftLegSwing * 0.5);
+                    ctx.translate(-torsoWidth/4, hipY);
+                    let leftLegSwing = 0;
+                    if (currentCommand === 'walk' || currentCommand === 'run') {
+                        leftLegSwing = -swing * 0.5;
+                    }
+                    ctx.rotate(leftLegSwing);
                     ctx.fillStyle = kimonoColor;
                     ctx.fillRect(-legWidth/2, 0, legWidth, legLen);
                     ctx.fillStyle = '#333333';
@@ -320,157 +327,134 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
                     // Right leg
                     ctx.save();
-                    ctx.translate(torsoWidth/4, hipYPos);
-                    const rightLegSwing = (animCommand === 'walk' || animCommand === 'run') ? swing : 0;
-                    ctx.rotate(rightLegSwing * 0.5);
+                    ctx.translate(torsoWidth/4, hipY);
+                    let rightLegSwing = 0;
+                    if (currentCommand === 'walk' || currentCommand === 'run') {
+                        rightLegSwing = swing * 0.5;
+                    }
+                    ctx.rotate(rightLegSwing);
                     ctx.fillStyle = kimonoColor;
                     ctx.fillRect(-legWidth/2, 0, legWidth, legLen);
                     ctx.fillStyle = '#333333';
                     ctx.fillRect(-legWidth/2 - 3, legLen-5, legWidth+6, 8);
                     ctx.restore();
 
-                    ctx.restore(); // restore from center translation
+                    ctx.restore();
                 }
 
-                // Animation update
+                // ---- Update logic ----
                 function update(delta) {
-                    if (kataRunning) {
-                        // Kata logic
-                        if (kataComplete) return;
-                        kataActionTime += delta;
-                        if (kataAction === null) return;
-                        const type = kataAction[0];
+                    if (kataRunning && !kataComplete) {
+                        // Kata mode: process actions sequentially
+                        if (kataAction === null) {
+                            // Start first action
+                            if (kataIndex < kataSequence.length) {
+                                kataAction = kataSequence[kataIndex];
+                                kataTimer = 0;
+                                // Set the command based on action type
+                                const type = kataAction[0];
+                                if (type === 'walk' || type === 'run') {
+                                    currentCommand = type;
+                                    isLooping = true;
+                                    isAnimating = true;
+                                    bowActive = false;
+                                } else if (type === 'idle') {
+                                    currentCommand = 'idle';
+                                    isLooping = false;
+                                    isAnimating = false;
+                                    bowActive = false;
+                                } else if (type === 'bow') {
+                                    currentCommand = 'bow';
+                                    isLooping = false;
+                                    isAnimating = false;
+                                    bowActive = true;
+                                    bowProgress = 0;
+                                } else {
+                                    // jump, wave, backflip
+                                    currentCommand = type;
+                                    isLooping = false;
+                                    isAnimating = true;
+                                    bowActive = false;
+                                }
+                            } else {
+                                kataComplete = true;
+                                kataRunning = false;
+                                currentCommand = 'idle';
+                                isAnimating = false;
+                                isLooping = false;
+                                bowActive = false;
+                                return;
+                            }
+                        }
+
+                        // Advance timer
+                        kataTimer += delta;
                         const duration = kataAction[1];
 
-                        if (type === 'idle') {
-                            if (kataActionTime >= duration) {
-                                nextKataAction();
-                            }
+                        // Check if action is complete
+                        if (kataTimer >= duration) {
+                            // Move to next action
+                            kataIndex++;
+                            kataAction = null;
+                            // Reset animation state
+                            isAnimating = false;
+                            isLooping = false;
+                            bowActive = false;
+                            // The next update will load the next action
                             return;
                         }
 
-                        if (type === 'walk' || type === 'run') {
-                            // Set command and start animation
-                            animCommand = type;
-                            loopAnimation = true;
-                            isAnimating = true;
-                            hasStarted = true;
-                            if (kataActionTime >= duration) {
-                                isAnimating = false;
-                                loopAnimation = false;
-                                resetPose();
-                                nextKataAction();
-                            }
-                            return;
+                        // While action is playing, we let the normal drawing handle it
+                        // But for bow, we update bowProgress
+                        if (currentCommand === 'bow') {
+                            bowProgress = Math.min(kataTimer / duration, 1.0);
                         }
 
-                        if (type === 'jump' || type === 'wave' || type === 'backflip') {
-                            animCommand = type;
-                            loopAnimation = false;
-                            isAnimating = true;
-                            hasStarted = true;
-                            // These actions are not looped; we let the animation play and then finish
-                            // We'll check when the animation ends via the normal anim logic
-                            // But for kata, we need to know when the action duration is over.
-                            // We'll handle it in the draw loop via animTime.
-                            // We'll set a flag.
-                            // Actually we can just let the animTime handle it in the draw function.
-                            // We'll set a flag that we are in a kata action.
-                            // In draw, after the action finishes, we call nextKataAction.
-                            // We'll use kataActionTime to track duration.
-                            if (kataActionTime >= duration) {
-                                // The animation should have finished by now
-                                isAnimating = false;
-                                resetPose();
-                                nextKataAction();
-                            }
-                            return;
-                        }
+                        // For walk/run, we already set isLooping, isAnimating; the animation loop will handle swing
+                        // For jump/wave/backflip, we need to set isAnimating true and let the loop handle it
+                        // We already set isAnimating for those types above.
 
-                        if (type === 'bow') {
-                            bowActive = true;
-                            bowProgress += delta / duration;
-                            if (bowProgress >= 1) {
-                                bowProgress = 1;
-                                if (kataActionTime >= duration + 0.2) {
-                                    bowActive = false;
-                                    resetPose();
-                                    nextKataAction();
-                                }
-                            }
-                            return;
-                        }
                     } else {
-                        // Normal command animation
-                        if (isAnimating && hasStarted) {
-                            animTime += delta;
-                            if (loopAnimation) {
-                                const speed = animCommand === 'walk' ? 2.0 : 3.0;
-                                walkCycle += delta * speed;
-                            } else {
-                                let duration = 1.2;
-                                if (animCommand === 'jump') duration = 1.2;
-                                else if (animCommand === 'wave') duration = 2.0;
-                                else if (animCommand === 'backflip') duration = 1.5;
-                                if (animTime >= duration) {
-                                    isAnimating = false;
-                                    resetPose();
-                                }
+                        // Normal (non-kata) command
+                        if (currentCommand === 'idle') {
+                            // do nothing
+                            isAnimating = false;
+                            isLooping = false;
+                            bowActive = false;
+                            return;
+                        }
+
+                        if (isLooping) {
+                            // walk or run: just keep updating walkCycle
+                            walkCycle += delta * (currentCommand === 'walk' ? 2.0 : 3.0);
+                            return;
+                        }
+
+                        if (isAnimating) {
+                            // non-looping animation (jump, wave, backflip)
+                            animTimer += delta;
+                            let duration = 1.2;
+                            if (currentCommand === 'jump') duration = 1.2;
+                            else if (currentCommand === 'wave') duration = 2.0;
+                            else if (currentCommand === 'backflip') duration = 1.5;
+                            if (animTimer >= duration) {
+                                // animation finished
+                                isAnimating = false;
+                                currentCommand = 'idle';
+                                animTimer = 0;
                             }
                         }
                     }
                 }
 
-                function nextKataAction() {
-                    kataActionIndex++;
-                    if (kataActionIndex >= kataSequence.length) {
-                        kataRunning = false;
-                        kataComplete = true;
-                        resetPose();
-                        return;
-                    }
-                    kataAction = kataSequence[kataActionIndex];
-                    kataActionTime = 0;
-                    const type = kataAction[0];
-                    if (type === 'idle') {
-                        loopAnimation = false;
-                        isAnimating = false;
-                        hasStarted = false;
-                    } else if (type === 'walk' || type === 'run') {
-                        loopAnimation = true;
-                        isAnimating = true;
-                        hasStarted = true;
-                        animCommand = type;
-                    } else if (type === 'bow') {
-                        bowActive = true;
-                        bowProgress = 0;
-                        isAnimating = false;
-                        loopAnimation = false;
-                        hasStarted = false;
-                    } else {
-                        loopAnimation = false;
-                        isAnimating = true;
-                        hasStarted = true;
-                        animCommand = type;
-                    }
-                }
-
-                function resetPose() {
-                    walkCycle = 0;
-                    bowActive = false;
-                    bowProgress = 0;
-                    // don't reset animCommand, it will be overridden
-                }
-
-                // Main draw loop
+                // ---- Main draw loop ----
                 let prevTime = performance.now();
 
                 function draw(time) {
-                    const delta = (time - prevTime) / 1000;
+                    const delta = Math.min((time - prevTime) / 1000, 0.05);
                     prevTime = time;
-                    // Cap delta to avoid jumps
-                    const dt = Math.min(delta, 0.05);
-                    update(dt);
+
+                    update(delta);
 
                     // Clear
                     ctx.clearRect(0, 0, width, height);
@@ -491,94 +475,78 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                         ctx.stroke();
                     }
 
-                    // Determine swing for walk/run
+                    // Compute swing for walk/run
                     let swing = 0;
-                    if (animCommand === 'walk' || animCommand === 'run') {
+                    if (currentCommand === 'walk' || currentCommand === 'run') {
                         swing = Math.sin(walkCycle) * 0.5;
                     }
 
-                    // Apply bow effect
+                    // Apply bow effect (rotate entire robot)
                     let bowAngle = 0;
                     if (bowActive) {
                         const ease = bowProgress < 0.5 ? 2*bowProgress*bowProgress : 1 - Math.pow(-2*bowProgress+2, 2)/2;
                         bowAngle = ease * 0.4;
                     }
 
-                    // Draw robot
+                    // Draw robot with bow rotation if needed
                     ctx.save();
                     if (bowAngle !== 0) {
                         ctx.rotate(bowAngle);
                     }
-                    drawRobot(bowAngle, swing);
+                    drawRobot(swing);
                     ctx.restore();
 
                     // Draw command text
                     ctx.fillStyle = '#8899bb';
                     ctx.font = '18px Arial';
-                    ctx.fillText('Command: ' + animCommand, 20, 30);
+                    ctx.fillText('Command: ' + currentCommand, 20, 30);
 
-                    // Draw kata progress if in kata
+                    // Draw kata progress
                     if (kataRunning && kataSequence.length > 0) {
                         ctx.fillStyle = '#00d4ff';
                         ctx.font = '16px Arial';
-                        const progress = Math.round((kataActionIndex / kataSequence.length) * 100);
+                        const progress = Math.round((kataIndex / kataSequence.length) * 100);
                         ctx.fillText('Kata progress: ' + progress + '%', 20, 60);
                     }
 
                     requestAnimationFrame(draw);
                 }
 
-                // Initialize
+                // ---- Initialization ----
                 function init() {
-                    // If kata sequence is provided, start it
+                    // Set initial command
+                    currentCommand = initialCommand;
+
+                    // If kata sequence provided, start kata mode
                     if (kataSequence.length > 0) {
                         kataRunning = true;
-                        kataActionIndex = 0;
-                        kataActionTime = 0;
+                        kataIndex = 0;
+                        kataTimer = 0;
                         kataComplete = false;
-                        kataAction = kataSequence[0];
-                        const type = kataAction[0];
-                        if (type === 'idle') {
-                            loopAnimation = false;
-                            isAnimating = false;
-                            hasStarted = false;
-                        } else if (type === 'walk' || type === 'run') {
-                            loopAnimation = true;
-                            isAnimating = true;
-                            hasStarted = true;
-                            animCommand = type;
-                        } else if (type === 'bow') {
-                            bowActive = true;
-                            bowProgress = 0;
-                            isAnimating = false;
-                            loopAnimation = false;
-                            hasStarted = false;
-                        } else {
-                            loopAnimation = false;
-                            isAnimating = true;
-                            hasStarted = true;
-                            animCommand = type;
-                        }
+                        kataAction = null; // will be loaded in first update
                     } else {
                         // Single command
-                        if (validCommands.includes(animCommand)) {
-                            isAnimating = true;
-                            hasStarted = true;
-                            if (animCommand === 'walk' || animCommand === 'run') {
-                                loopAnimation = true;
+                        if (validCommands.includes(currentCommand)) {
+                            if (currentCommand === 'walk' || currentCommand === 'run') {
+                                isLooping = true;
+                                isAnimating = true;
+                                walkCycle = 0;
                             } else {
-                                loopAnimation = false;
+                                isLooping = false;
+                                isAnimating = true;
+                                animTimer = 0;
                             }
                         } else {
-                            resetPose();
+                            currentCommand = 'idle';
+                            isLooping = false;
+                            isAnimating = false;
                         }
                     }
 
-                    // Start the animation loop
+                    // Start animation loop
                     requestAnimationFrame(draw);
                 }
 
-                // Wait for canvas to be ready
                 setTimeout(init, 100);
             })();
         </script>
@@ -737,7 +705,7 @@ with col_view:
         st.session_state.kata
     )
     
-    # Encode as data URI and use st.iframe (no scrolling parameter)
+    # Encode as data URI and use st.iframe
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
     st.iframe(data_uri, height=650)
 
