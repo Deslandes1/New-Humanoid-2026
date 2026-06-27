@@ -129,7 +129,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (Three.js) ----
+# ---- 3D Viewer HTML generator (Transformer-style robot) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     # Colors
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -200,11 +200,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const renderer = new THREE.WebGLRenderer({{ antialias: true }});
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // ---- Controls (optional, but lets user orbit) ----
+        // ---- Controls ----
         const controls = new OrbitControls(camera, renderer.domElement);
-        controls.target.set(0, 1, 0);
+        controls.target.set(0, 1.2, 0);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.update();
@@ -213,68 +214,87 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const ambient = new THREE.AmbientLight(0x404060);
         scene.add(ambient);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
         dirLight.position.set(5, 10, 7);
         dirLight.castShadow = true;
         scene.add(dirLight);
 
-        const fillLight = new THREE.DirectionalLight(0x88aaff, 0.3);
+        const fillLight = new THREE.DirectionalLight(0x88aaff, 0.4);
         fillLight.position.set(-3, 2, 4);
         scene.add(fillLight);
+
+        const rimLight = new THREE.DirectionalLight(0xffaa66, 0.3);
+        rimLight.position.set(-2, 1, -5);
+        scene.add(rimLight);
 
         // ---- Ground grid ----
         const gridHelper = new THREE.GridHelper(10, 20, 0x336688, 0x224466);
         gridHelper.position.y = -0.5;
         scene.add(gridHelper);
 
-        // ---- Robot construction ----
+        // ---- Robot construction (Transformer style) ----
         const robotGroup = new THREE.Group();
         robotGroup.position.y = 0.5;
 
         // Materials
-        const mainMat = new THREE.MeshStandardMaterial({{ color: '{main_color}', roughness: 0.5, metalness: 0.3 }});
-        const accentMat = new THREE.MeshStandardMaterial({{ color: '{accent_color}', roughness: 0.4, metalness: 0.2 }});
-        const kimonoMat = new THREE.MeshStandardMaterial({{ color: '{kimono_color}', roughness: 0.6 }});
-        const beltMat = new THREE.MeshStandardMaterial({{ color: '{belt_color}', roughness: 0.7 }});
-        const headMat = new THREE.MeshStandardMaterial({{ color: '#aaaaaa', roughness: 0.4 }});
-        const visorMat = new THREE.MeshStandardMaterial({{ color: '#00ddff', emissive: '#0066aa', emissiveIntensity: 0.3 }});
-        const antennaMat = new THREE.MeshStandardMaterial({{ color: '#ffaa00', emissive: '#ff8800', emissiveIntensity: 0.2 }});
+        const mainMat = new THREE.MeshStandardMaterial({{ color: '{main_color}', roughness: 0.4, metalness: 0.6 }});
+        const accentMat = new THREE.MeshStandardMaterial({{ color: '{accent_color}', roughness: 0.3, metalness: 0.5 }});
+        const darkMat = new THREE.MeshStandardMaterial({{ color: '#333333', roughness: 0.5, metalness: 0.4 }});
+        const jointMat = new THREE.MeshStandardMaterial({{ color: '#888888', roughness: 0.3, metalness: 0.7 }});
+        const visorMat = new THREE.MeshStandardMaterial({{ color: '#00ddff', emissive: '#0066aa', emissiveIntensity: 0.5 }});
+        const antennaMat = new THREE.MeshStandardMaterial({{ color: '#ffaa00', emissive: '#ff8800', emissiveIntensity: 0.3 }});
         const headbandMat = new THREE.MeshStandardMaterial({{ color: '{headband_color}', roughness: 0.3 }});
-        const jointMat = new THREE.MeshStandardMaterial({{ color: '#888888', roughness: 0.6 }});
+        const beltMat = new THREE.MeshStandardMaterial({{ color: '{belt_color}', roughness: 0.5 }});
 
-        // Torso
-        const torsoGeo = new THREE.BoxGeometry(0.8, 1.0, 0.5);
-        const torso = new THREE.Mesh(torsoGeo, kimonoMat);
-        torso.position.y = 0.5;
+        // ---- Torso ----
+        const torsoGroup = new THREE.Group();
+        robotGroup.add(torsoGroup);
+
+        // Main torso box
+        const torsoGeo = new THREE.BoxGeometry(0.9, 1.1, 0.6);
+        const torso = new THREE.Mesh(torsoGeo, mainMat);
+        torso.position.y = 0.55;
         torso.castShadow = true;
-        robotGroup.add(torso);
+        torsoGroup.add(torso);
 
-        // Belt (stripe)
-        const beltGeo = new THREE.BoxGeometry(0.7, 0.1, 0.45);
-        const belt = new THREE.Mesh(beltGeo, beltMat);
-        belt.position.set(0, 0.05, 0);
-        torso.add(belt);
-
-        // Chest accent
-        const chestGeo = new THREE.BoxGeometry(0.4, 0.2, 0.1);
+        // Chest plate
+        const chestGeo = new THREE.BoxGeometry(0.7, 0.4, 0.15);
         const chest = new THREE.Mesh(chestGeo, accentMat);
-        chest.position.set(0, 0.15, 0.3);
-        torso.add(chest);
+        chest.position.set(0, 0.3, 0.4);
+        torsoGroup.add(chest);
 
-        // Head
+        // Abs / belt
+        const beltGeo = new THREE.BoxGeometry(0.8, 0.12, 0.5);
+        const belt = new THREE.Mesh(beltGeo, beltMat);
+        belt.position.set(0, 0.0, 0);
+        torsoGroup.add(belt);
+
+        // Pelvis / hip
+        const hipGeo = new THREE.BoxGeometry(0.7, 0.2, 0.5);
+        const hip = new THREE.Mesh(hipGeo, darkMat);
+        hip.position.set(0, -0.4, 0);
+        torsoGroup.add(hip);
+
+        // ---- Neck ----
+        const neckGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.15);
+        const neck = new THREE.Mesh(neckGeo, jointMat);
+        neck.position.set(0, 1.1, 0);
+        torsoGroup.add(neck);
+
+        // ---- Head ----
         const headGroup = new THREE.Group();
-        headGroup.position.set(0, 1.0, 0);
-        torso.add(headGroup);
+        headGroup.position.set(0, 1.2, 0);
+        torsoGroup.add(headGroup);
 
         const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
-        const head = new THREE.Mesh(headGeo, headMat);
+        const head = new THREE.Mesh(headGeo, mainMat);
         head.castShadow = true;
         headGroup.add(head);
 
         // Visor
         const visorGeo = new THREE.BoxGeometry(0.35, 0.12, 0.05);
         const visor = new THREE.Mesh(visorGeo, visorMat);
-        visor.position.set(0, 0, 0.28);
+        visor.position.set(0, 0.0, 0.28);
         head.add(visor);
 
         // Antenna
@@ -296,47 +316,145 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             head.add(band);
         }}
 
+        // ---- Shoulder pads ----
+        const shoulderPadGeo = new THREE.SphereGeometry(0.22, 8, 8);
+        const shoulderPadMat = new THREE.MeshStandardMaterial({{ color: '#555555', roughness: 0.3, metalness: 0.6 }});
+
+        // Left shoulder
+        const leftShoulder = new THREE.Mesh(shoulderPadGeo, shoulderPadMat);
+        leftShoulder.position.set(-0.6, 0.9, 0);
+        torsoGroup.add(leftShoulder);
+
+        // Right shoulder
+        const rightShoulder = new THREE.Mesh(shoulderPadGeo, shoulderPadMat);
+        rightShoulder.position.set(0.6, 0.9, 0);
+        torsoGroup.add(rightShoulder);
+
+        // ---- Arms ----
         // Left arm
         const leftArmGroup = new THREE.Group();
-        leftArmGroup.position.set(-0.55, 0.8, 0);
-        torso.add(leftArmGroup);
+        leftArmGroup.position.set(-0.65, 0.8, 0);
+        torsoGroup.add(leftArmGroup);
 
-        const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
-        const leftArm = new THREE.Mesh(armGeo, kimonoMat);
-        leftArm.position.y = -0.35;
-        leftArm.castShadow = true;
-        leftArmGroup.add(leftArm);
+        // Upper arm
+        const upperArmGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
+        const leftUpperArm = new THREE.Mesh(upperArmGeo, mainMat);
+        leftUpperArm.position.y = -0.2;
+        leftUpperArm.castShadow = true;
+        leftArmGroup.add(leftUpperArm);
+
+        // Elbow joint
+        const elbowGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const leftElbow = new THREE.Mesh(elbowGeo, jointMat);
+        leftElbow.position.y = -0.4;
+        leftArmGroup.add(leftElbow);
+
+        // Forearm group (for elbow rotation)
+        const leftForearmGroup = new THREE.Group();
+        leftForearmGroup.position.y = -0.4;
+        leftArmGroup.add(leftForearmGroup);
+
+        const forearmGeo = new THREE.BoxGeometry(0.18, 0.3, 0.18);
+        const leftForearm = new THREE.Mesh(forearmGeo, darkMat);
+        leftForearm.position.y = -0.15;
+        leftForearm.castShadow = true;
+        leftForearmGroup.add(leftForearm);
+
+        // Hand
+        const handGeo = new THREE.BoxGeometry(0.15, 0.1, 0.15);
+        const leftHand = new THREE.Mesh(handGeo, accentMat);
+        leftHand.position.y = -0.35;
+        leftForearmGroup.add(leftHand);
 
         // Right arm
         const rightArmGroup = new THREE.Group();
-        rightArmGroup.position.set(0.55, 0.8, 0);
-        torso.add(rightArmGroup);
+        rightArmGroup.position.set(0.65, 0.8, 0);
+        torsoGroup.add(rightArmGroup);
 
-        const rightArm = new THREE.Mesh(armGeo, kimonoMat);
-        rightArm.position.y = -0.35;
-        rightArm.castShadow = true;
-        rightArmGroup.add(rightArm);
+        const rightUpperArm = new THREE.Mesh(upperArmGeo, mainMat);
+        rightUpperArm.position.y = -0.2;
+        rightUpperArm.castShadow = true;
+        rightArmGroup.add(rightUpperArm);
 
+        const rightElbow = new THREE.Mesh(elbowGeo, jointMat);
+        rightElbow.position.y = -0.4;
+        rightArmGroup.add(rightElbow);
+
+        const rightForearmGroup = new THREE.Group();
+        rightForearmGroup.position.y = -0.4;
+        rightArmGroup.add(rightForearmGroup);
+
+        const rightForearm = new THREE.Mesh(forearmGeo, darkMat);
+        rightForearm.position.y = -0.15;
+        rightForearm.castShadow = true;
+        rightForearmGroup.add(rightForearm);
+
+        const rightHand = new THREE.Mesh(handGeo, accentMat);
+        rightHand.position.y = -0.35;
+        rightForearmGroup.add(rightHand);
+
+        // ---- Legs ----
         // Left leg
         const leftLegGroup = new THREE.Group();
         leftLegGroup.position.set(-0.25, -0.45, 0);
-        torso.add(leftLegGroup);
+        torsoGroup.add(leftLegGroup);
 
-        const legGeo = new THREE.BoxGeometry(0.25, 0.7, 0.25);
-        const leftLeg = new THREE.Mesh(legGeo, kimonoMat);
-        leftLeg.position.y = -0.35;
-        leftLeg.castShadow = true;
-        leftLegGroup.add(leftLeg);
+        // Upper leg
+        const upperLegGeo = new THREE.BoxGeometry(0.25, 0.4, 0.25);
+        const leftUpperLeg = new THREE.Mesh(upperLegGeo, mainMat);
+        leftUpperLeg.position.y = -0.2;
+        leftUpperLeg.castShadow = true;
+        leftLegGroup.add(leftUpperLeg);
+
+        // Knee joint
+        const kneeGeo = new THREE.SphereGeometry(0.1, 8, 8);
+        const leftKnee = new THREE.Mesh(kneeGeo, jointMat);
+        leftKnee.position.y = -0.4;
+        leftLegGroup.add(leftKnee);
+
+        // Lower leg group
+        const leftLowerLegGroup = new THREE.Group();
+        leftLowerLegGroup.position.y = -0.4;
+        leftLegGroup.add(leftLowerLegGroup);
+
+        const lowerLegGeo = new THREE.BoxGeometry(0.22, 0.35, 0.22);
+        const leftLowerLeg = new THREE.Mesh(lowerLegGeo, darkMat);
+        leftLowerLeg.position.y = -0.175;
+        leftLowerLeg.castShadow = true;
+        leftLowerLegGroup.add(leftLowerLeg);
+
+        // Foot
+        const footGeo = new THREE.BoxGeometry(0.3, 0.08, 0.4);
+        const leftFoot = new THREE.Mesh(footGeo, accentMat);
+        leftFoot.position.set(0, -0.4, 0.05);
+        leftLowerLegGroup.add(leftFoot);
 
         // Right leg
         const rightLegGroup = new THREE.Group();
         rightLegGroup.position.set(0.25, -0.45, 0);
-        torso.add(rightLegGroup);
+        torsoGroup.add(rightLegGroup);
 
-        const rightLeg = new THREE.Mesh(legGeo, kimonoMat);
-        rightLeg.position.y = -0.35;
-        rightLeg.castShadow = true;
-        rightLegGroup.add(rightLeg);
+        const rightUpperLeg = new THREE.Mesh(upperLegGeo, mainMat);
+        rightUpperLeg.position.y = -0.2;
+        rightUpperLeg.castShadow = true;
+        rightLegGroup.add(rightUpperLeg);
+
+        const rightKnee = new THREE.Mesh(kneeGeo, jointMat);
+        rightKnee.position.y = -0.4;
+        rightLegGroup.add(rightKnee);
+
+        const rightLowerLegGroup = new THREE.Group();
+        rightLowerLegGroup.position.y = -0.4;
+        rightLegGroup.add(rightLowerLegGroup);
+
+        const rightLowerLeg = new THREE.Mesh(lowerLegGeo, darkMat);
+        rightLowerLeg.position.y = -0.175;
+        rightLowerLeg.castShadow = true;
+        rightLowerLegGroup.add(rightLowerLeg);
+
+        const rightFoot = new THREE.Mesh(footGeo, accentMat);
+        rightFoot.position.set(0, -0.4, 0.05);
+        rightLowerLegGroup.add(rightFoot);
 
         scene.add(robotGroup);
 
@@ -430,20 +548,39 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         function animateRobot() {{
             const swing = (state.cmd === 'walk' || state.cmd === 'run') ? Math.sin(state.walkCycle) * 0.5 : 0;
 
-            // Reset rotations and positions (except for ongoing animations)
+            // Reset
             leftArmGroup.rotation.x = 0;
             rightArmGroup.rotation.x = 0;
+            leftForearmGroup.rotation.x = 0;
+            rightForearmGroup.rotation.x = 0;
             leftLegGroup.rotation.x = 0;
             rightLegGroup.rotation.x = 0;
+            leftLowerLegGroup.rotation.x = 0;
+            rightLowerLegGroup.rotation.x = 0;
             robotGroup.rotation.x = 0;
             robotGroup.position.y = 0.5;
+            torsoGroup.rotation.x = 0;
 
             // Walk/Run
             if (state.cmd === 'walk' || state.cmd === 'run') {{
-                leftArmGroup.rotation.x = -swing * 0.6;
-                rightArmGroup.rotation.x = swing * 0.6;
-                leftLegGroup.rotation.x = swing * 0.4;
-                rightLegGroup.rotation.x = -swing * 0.4;
+                const armSwing = swing * 0.8;
+                const legSwing = swing * 0.6;
+                const elbowSwing = swing * 0.3;
+                const kneeSwing = swing * 0.3;
+
+                // Shoulders
+                leftArmGroup.rotation.x = -armSwing;
+                rightArmGroup.rotation.x = armSwing;
+                // Elbows (forearms) - bend slightly in opposite direction
+                leftForearmGroup.rotation.x = -elbowSwing;
+                rightForearmGroup.rotation.x = elbowSwing;
+
+                // Hips
+                leftLegGroup.rotation.x = legSwing;
+                rightLegGroup.rotation.x = -legSwing;
+                // Knees
+                leftLowerLegGroup.rotation.x = -kneeSwing;
+                rightLowerLegGroup.rotation.x = kneeSwing;
             }}
 
             // Jump
@@ -464,15 +601,16 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             // Wave
             if (state.cmd === 'wave' && state.animating) {{
                 rightArmGroup.rotation.x = -0.8 + Math.sin(state.animTimer * 6) * 0.3;
+                rightForearmGroup.rotation.x = 0.2 + Math.sin(state.animTimer * 6 + 1) * 0.2;
             }}
 
             // Bow
             if (state.cmd === 'bow' && (state.bowActive || state.animating)) {{
                 const prog = state.bowActive ? state.bowProgress : Math.min(state.animTimer / 2.0, 1);
                 const ease = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
-                torso.rotation.x = ease * 0.6;
+                torsoGroup.rotation.x = ease * 0.6;
             }} else {{
-                torso.rotation.x = 0;
+                torsoGroup.rotation.x = 0;
             }}
         }}
 
