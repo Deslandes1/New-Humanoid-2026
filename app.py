@@ -3,6 +3,7 @@ import os
 import tempfile
 import time
 import json
+import urllib.parse
 
 try:
     from gtts import gTTS
@@ -128,7 +129,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----- HTML Viewer (plain script tags) -----
+# ----- HTML Viewer (returns the full HTML as a string) -----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     color_map = {"Red Titan": 0xff3333, "Blue Sentinel": 0x3388ff, "Green Viper": 0x33cc66, "Gold Phoenix": 0xffaa00, "Silver Ghost": 0xcccccc}
     main_color = color_map.get(robot_name, 0x3388ff)
@@ -152,6 +153,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
+    # Use a single reliable CDN (cdnjs) for Three.js and OrbitControls from the same source
     html_template = """
     <!DOCTYPE html>
     <html>
@@ -186,7 +188,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         
         <script>
             (function() {
-                // Global error handler to show fallback on any uncaught error
                 window.onerror = function(msg, url, line, col, error) {
                     var fallback = document.getElementById('fallback');
                     fallback.classList.add('show');
@@ -213,10 +214,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                         return;
                     }
                     
-                    // Check for OrbitControls (it may be defined globally or on THREE)
                     var OrbitControlsCtor = THREE.OrbitControls || window.OrbitControls;
                     if (!OrbitControlsCtor) {
-                        // Wait a bit more
                         initAttempts++;
                         if (initAttempts < maxAttempts + 3) {
                             setTimeout(init, 200);
@@ -230,7 +229,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     }
                     
                     try {
-                        // --- Build scene ---
                         var scene = new THREE.Scene();
                         scene.background = new THREE.Color(0x0a0a0f);
                         
@@ -663,7 +661,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     }
                 }
                 
-                // Start after a short delay to ensure scripts are loaded
                 setTimeout(init, 300);
             })();
         </script>
@@ -817,8 +814,9 @@ with col_view:
         st.session_state.kata
     )
     
-    # Use st.components.v1.html – the deprecation warning is harmless
-    st.components.v1.html(viewer_html, height=650, scrolling=True)
+    # Encode the HTML as a data URI and use st.iframe
+    data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
+    st.iframe(data_uri, height=650, scrolling=True)
 
 with col_info:
     st.markdown(f"""
