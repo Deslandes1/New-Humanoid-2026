@@ -3,7 +3,6 @@ import os
 import tempfile
 import time
 import json
-import urllib.parse
 
 try:
     from gtts import gTTS
@@ -814,9 +813,8 @@ with col_view:
         st.session_state.kata
     )
     
-    # Encode the HTML as a data URI and use st.iframe
-    data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    st.iframe(data_uri, height=650, scrolling=True)
+    # This is the stable, known-working component – the deprecation warning is harmless
+    st.components.v1.html(viewer_html, height=650, scrolling=True)
 
 with col_info:
     st.markdown(f"""
