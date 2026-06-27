@@ -128,6 +128,16 @@ st.markdown("""
     .status-panel .label { color: #8899bb; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
     .status-panel .value { color: #00d4ff; font-size: 1.2rem; font-weight: 600; }
     .backstage { margin-top: 20px; }
+    .kata-step {
+        background: rgba(0,212,255,0.05);
+        border: 1px solid #00d4ff;
+        border-radius: 8px;
+        padding: 8px 12px;
+        margin: 8px 0;
+        text-align: center;
+    }
+    .kata-step .step-name { color: #00d4ff; font-weight: 600; font-size: 1.1rem; }
+    .kata-step .step-progress { color: #8899bb; font-size: 0.85rem; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -177,11 +187,42 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             body {{ margin: 0; overflow: hidden; background: #0a0a0f; }}
             canvas {{ display: block; }}
             #info {{ position: absolute; bottom: 20px; left: 20px; color: #8899bb; font-size: 14px; pointer-events: none; z-index: 10; }}
+            #step-info {{
+                position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+                color: #00d4ff; font-size: 20px; font-weight: 600;
+                text-shadow: 0 0 20px rgba(0,212,255,0.3);
+                background: rgba(10,10,15,0.7);
+                padding: 8px 24px;
+                border-radius: 30px;
+                border: 1px solid #00d4ff;
+                pointer-events: none;
+                z-index: 10;
+                text-align: center;
+            }}
+            #step-progress {{
+                position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
+                width: 60%; max-width: 400px;
+                height: 6px;
+                background: #1a2a3a;
+                border-radius: 3px;
+                overflow: hidden;
+                pointer-events: none;
+                z-index: 10;
+            }}
+            #step-progress-bar {{
+                height: 100%;
+                width: 0%;
+                background: linear-gradient(90deg, #00d4ff, #0088ff);
+                border-radius: 3px;
+                transition: width 0.1s;
+            }}
         </style>
     </head>
     <body>
         <!-- cache-buster: {cache_buster} -->
         <div id="info">🤖 {robot_name} | Command: {command if command else 'Idle'}</div>
+        <div id="step-info">⏳ Waiting...</div>
+        <div id="step-progress"><div id="step-progress-bar" style="width:0%"></div></div>
         <script type="importmap">
         {{
             "imports": {{
@@ -192,6 +233,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         <script type="module">
         import * as THREE from 'three';
         import {{ OrbitControls }} from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+
+        // DOM elements for step info
+        const stepInfoEl = document.getElementById('step-info');
+        const progressBar = document.getElementById('step-progress-bar');
 
         // ---- Setup scene ----
         const scene = new THREE.Scene();
@@ -481,6 +526,30 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             validCmds: {json.dumps(valid_commands)},
         }};
 
+        // Helper to update step info
+        function updateStepInfo() {{
+            if (state.kataRunning && state.kataAction !== null) {{
+                const stepName = state.kataAction[0];
+                const total = state.kataSeq.length;
+                const current = state.kataIdx + 1;
+                const progress = (state.kataIdx / total) * 100;
+                stepInfoEl.textContent = `🥋 Step ${{current}}/${{total}}: ${{stepName.toUpperCase()}}`;
+                progressBar.style.width = progress + '%';
+            }} else if (state.kataRunning && state.kataComplete) {{
+                stepInfoEl.textContent = '✅ Kata Complete!';
+                progressBar.style.width = '100%';
+            }} else {{
+                // Single command
+                if (state.cmd !== 'idle') {{
+                    stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
+                    progressBar.style.width = (state.animating ? (state.animTimer / 1.5 * 100) : 0) + '%';
+                }} else {{
+                    stepInfoEl.textContent = '⏳ Idle';
+                    progressBar.style.width = '0%';
+                }}
+            }}
+        }}
+
         // ---- Update function ----
         function update(dt) {{
             // Kata logic
@@ -499,6 +568,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                         }} else {{
                             state.cmd = type; state.looping = false; state.animating = true; state.bowActive = false;
                         }}
+                        updateStepInfo();
                     }} else {{
                         state.kataComplete = true;
                         state.kataRunning = false;
@@ -506,6 +576,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                         state.animating = false;
                         state.looping = false;
                         state.bowActive = false;
+                        updateStepInfo();
                         return;
                     }}
                 }}
@@ -517,7 +588,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     state.animating = false;
                     state.looping = false;
                     state.bowActive = false;
-                    return;
+                    // updateStepInfo will be called when next action starts
                 }}
                 if (state.cmd === 'bow') state.bowProgress = Math.min(state.kataTimer / dur, 1.0);
                 return;
@@ -529,7 +600,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 return;
             }}
             if (state.looping) {{
-                // Run is much faster
                 const speed = (state.cmd === 'walk') ? 2.2 : 8.0;
                 state.walkCycle += dt * speed;
                 return;
@@ -541,7 +611,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 else if (state.cmd === 'wave') dur = 2.0;
                 else if (state.cmd === 'frontflip' || state.cmd === 'backflip') dur = 1.5;
                 else if (state.cmd === 'bow') dur = 2.0;
-                // Update bow progress for standalone bow command
                 if (state.cmd === 'bow' && state.bowActive) {{
                     state.bowProgress = Math.min(state.animTimer / dur, 1.0);
                 }}
@@ -551,12 +620,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     state.animTimer = 0;
                     state.bowActive = false;
                 }}
+                updateStepInfo(); // update progress bar for single commands
             }}
         }}
 
         // ---- Apply animations to robot ----
         function animateRobot() {{
-            // Determine swing amplitude: run has larger amplitude
             const isRun = (state.cmd === 'run');
             const amp = isRun ? 1.2 : 0.5;
             const swing = (state.cmd === 'walk' || isRun) ? Math.sin(state.walkCycle) * amp : 0;
@@ -599,22 +668,22 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 robotGroup.position.y = 0.5 + y;
             }}
 
-            // Frontflip (forward rotation, backward movement)
+            // Frontflip
             if (state.cmd === 'frontflip' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.5, 1);
                 const y = 2.0 * 4 * t * (1 - t);
                 robotGroup.position.y = 0.5 + y;
-                robotGroup.rotation.x = t * 2 * Math.PI;          // forward roll
-                robotGroup.position.z = -0.3 * Math.sin(t * Math.PI); // move backward
+                robotGroup.rotation.x = t * 2 * Math.PI;
+                robotGroup.position.z = -0.3 * Math.sin(t * Math.PI);
             }}
 
-            // Backflip (backward rotation, forward movement)
+            // Backflip
             if (state.cmd === 'backflip' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.5, 1);
                 const y = 2.0 * 4 * t * (1 - t);
                 robotGroup.position.y = 0.5 + y;
-                robotGroup.rotation.x = -t * 2 * Math.PI;         // backward roll (negative)
-                robotGroup.position.z = 0.3 * Math.sin(t * Math.PI);  // move forward
+                robotGroup.rotation.x = -t * 2 * Math.PI;
+                robotGroup.position.z = 0.3 * Math.sin(t * Math.PI);
             }}
 
             // Wave
@@ -642,6 +711,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
             update(dt);
             animateRobot();
+            updateStepInfo();  // keep UI updated
 
             controls.update();
             renderer.render(scene, camera);
@@ -686,7 +756,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 state.animating = false;
             }}
         }}
-
+        updateStepInfo();
         animate(performance.now());
         </script>
     </body>
@@ -787,16 +857,30 @@ with st.sidebar:
 
     st.markdown("### 🎮 Commands")
     st.markdown("*Walk and Run loop continuously. Jump, Wave, Frontflip, Backflip, Bow play once.*")
-    action_input = st.text_input("Action (e.g., walk, run, jump, wave, frontflip, backflip, bow)", key="action_input",
-                                 placeholder="e.g., backflip")
+    st.markdown("*You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.*")
+    action_input = st.text_input("Action or Kata", key="action_input",
+                                 placeholder="e.g., backflip or Taikyoku Shodan")
     if st.button("▶️ Execute Action", use_container_width=True):
         if action_input.strip():
-            st.session_state.kata = None
-            st.session_state.command = action_input.strip()
-            st.session_state.last_action = action_input.strip().lower()
-            st.rerun()
+            # Check if input matches a kata name (case-insensitive)
+            kata_name_match = None
+            for k in KATAS.keys():
+                if k.lower() == action_input.strip().lower():
+                    kata_name_match = k
+                    break
+            if kata_name_match:
+                st.session_state.kata = kata_name_match
+                st.session_state.command = ""
+                st.session_state.last_action = f"Kata: {kata_name_match}"
+                st.rerun()
+            else:
+                # Treat as single command
+                st.session_state.kata = None
+                st.session_state.command = action_input.strip()
+                st.session_state.last_action = action_input.strip().lower()
+                st.rerun()
         else:
-            st.warning("Please enter an action.")
+            st.warning("Please enter an action or kata name.")
 
     st.markdown("---")
     st.markdown("### 🗣️ Speech")
@@ -843,7 +927,6 @@ with col_view:
         st.session_state.kata
     )
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    # Append random fragment to force iframe reload
     data_uri += f"#{random.randint(1, 999999)}"
     st.iframe(data_uri, height=650, width=700)
 
