@@ -164,11 +164,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Cache-buster
-    import time as _time
-    cache_buster = f"<!-- {_time.time()} -->"
-
-    # Build HTML with Three.js embedded
+    # Build HTML with Three.js embedded – all JS braces are doubled!
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -181,7 +177,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         </style>
     </head>
     <body>
-        {cache_buster}
         <div id="info">🤖 {robot_name} | Command: {command if command else 'Idle'}</div>
         <script type="importmap">
         {{
@@ -192,7 +187,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         </script>
         <script type="module">
         import * as THREE from 'three';
-        import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+        import {{ OrbitControls }} from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
         // ---- Setup scene ----
         const scene = new THREE.Scene();
@@ -202,7 +197,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         camera.position.set(4, 3, 6);
         camera.lookAt(0, 0, 0);
 
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        const renderer = new THREE.WebGLRenderer({{ antialias: true }});
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         document.body.appendChild(renderer.domElement);
