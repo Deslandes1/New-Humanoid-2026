@@ -152,7 +152,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Use a simple HTML with script tags (no importmap)
+    # Use robust CDN links with fallback on error
     html_template = """
     <!DOCTYPE html>
     <html>
@@ -162,28 +162,57 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             body { margin: 0; overflow: hidden; background: #0a0a0f; font-family: Arial; }
             #canvas-container { width: 100vw; height: 100vh; display: block; }
             #info { position: absolute; bottom: 20px; left: 20px; color: #8899bb; font-size: 14px; pointer-events: none; z-index: 10; }
-            #fallback { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #ff6b6b; font-size: 20px; text-align: center; display: none; z-index: 20; }
+            #fallback { 
+                position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); 
+                color: #ff6b6b; font-size: 20px; text-align: center; 
+                display: none; z-index: 20; 
+                background: rgba(10,10,15,0.9); padding: 30px; border-radius: 12px;
+                border: 1px solid #ff6b6b;
+            }
+            #fallback.show { display: block; }
         </style>
     </head>
     <body>
         <div id="canvas-container"></div>
         <div id="info">🤖 ROBOT_NAME | Command: COMMAND</div>
-        <div id="fallback">⚠️ 3D engine failed to load. Please refresh.</div>
+        <div id="fallback">⚠️ 3D engine failed to load. Please refresh.<br><small>Check console for errors.</small></div>
         
-        <!-- Load Three.js from CDN -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+        <!-- Load Three.js from CDN with error handling -->
+        <script src="https://unpkg.com/three@0.128.0/build/three.min.js" 
+                onerror="document.getElementById('fallback').classList.add('show')"></script>
+        <script src="https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js" 
+                onerror="document.getElementById('fallback').classList.add('show')"></script>
         
         <script>
             (function() {
                 var container = document.getElementById('canvas-container');
                 var fallback = document.getElementById('fallback');
+                var initAttempts = 0;
+                var maxAttempts = 5;
                 
-                // Wait for THREE to be defined
                 function init() {
                     if (typeof THREE === 'undefined') {
-                        setTimeout(init, 200);
+                        initAttempts++;
+                        if (initAttempts < maxAttempts) {
+                            setTimeout(init, 300);
+                        } else {
+                            fallback.classList.add('show');
+                            console.error('Three.js failed to load after ' + maxAttempts + ' attempts.');
+                        }
                         return;
+                    }
+                    
+                    // Check if OrbitControls is available (it might be defined on THREE)
+                    if (typeof THREE.OrbitControls === 'undefined' && typeof OrbitControls === 'undefined') {
+                        // OrbitControls may be defined globally
+                        if (typeof window.OrbitControls !== 'undefined') {
+                            // use it
+                        } else {
+                            // Try to load again? But we already have the script, maybe it's not loaded yet.
+                            // We'll wait a bit more.
+                            setTimeout(init, 200);
+                            return;
+                        }
                     }
                     
                     // --- Build scene ---
@@ -203,7 +232,24 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     renderer.toneMappingExposure = 1.2;
                     container.appendChild(renderer.domElement);
                     
-                    var controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    var controls;
+                    // OrbitControls might be under THREE.OrbitControls or global
+                    if (typeof THREE.OrbitControls !== 'undefined') {
+                        controls = new THREE.OrbitControls(camera, renderer.domElement);
+                    } else if (typeof OrbitControls !== 'undefined') {
+                        controls = new OrbitControls(camera, renderer.domElement);
+                    } else {
+                        // Fallback: simple auto-rotate
+                        controls = {
+                            target: new THREE.Vector3(0, 0.8, 0),
+                            update: function() {},
+                            enableDamping: false,
+                            minDistance: 2,
+                            maxDistance: 10
+                        };
+                        console.warn('OrbitControls not found, using dummy controls.');
+                    }
+                    
                     controls.target.set(0, 0.8, 0);
                     controls.enableDamping = true;
                     controls.dampingFactor = 0.05;
@@ -615,7 +661,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 }
                 
                 // Start after a short delay to ensure THREE is loaded
-                setTimeout(init, 100);
+                setTimeout(init, 200);
             })();
         </script>
     </body>
@@ -768,8 +814,11 @@ with col_view:
         st.session_state.kata
     )
     
-    # ---- Use st.components.v1.html (still works, deprecation warning only) ----
-    st.components.v1.html(viewer_html, height=650, scrolling=True)
+    # Use st.html if available (Streamlit 1.36+), otherwise fallback to st.components.v1.html
+    if hasattr(st, 'html'):
+        st.html(viewer_html, height=650)
+    else:
+        st.components.v1.html(viewer_html, height=650, scrolling=True)
 
 with col_info:
     st.markdown(f"""
