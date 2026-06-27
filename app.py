@@ -128,7 +128,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----- HTML Viewer (3D Three.js) with robust CDN fallback -----
+# ----- HTML Viewer (3D Three.js) with local static fallback -----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     color_map = {"Red Titan": 0xff3333, "Blue Sentinel": 0x3388ff, "Green Viper": 0x33cc66, "Gold Phoenix": 0xffaa00, "Silver Ghost": 0xcccccc}
     main_color = color_map.get(robot_name, 0x3388ff)
@@ -152,7 +152,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Use the most reliable CDN loading: try cdnjs, then jsdelivr, then unpkg as fallback
+    # The HTML template now loads Three.js from local static folder first,
+    # then falls back to CDN if local fails.
     html_template = """
     <!DOCTYPE html>
     <html>
@@ -179,11 +180,11 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         <div id="info">🤖 ROBOT_NAME | Command: COMMAND</div>
         <div id="fallback">⚠️ 3D engine failed to load.<br><small>Check browser console for details.</small></div>
 
-        <!-- Try multiple CDNs: cdnjs first, then unpkg, then jsdelivr -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" 
-                onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://unpkg.com/three@0.128.0/build/three.min.js'; document.head.appendChild(s);"></script>
-        <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" 
-                onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://unpkg.com/three@0.128.0/examples/js/controls/OrbitControls.js'; document.head.appendChild(s);"></script>
+        <!-- First try loading from local static folder -->
+        <script src="/app/static/three.min.js" 
+                onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js'; document.head.appendChild(s);"></script>
+        <script src="/app/static/OrbitControls.js" 
+                onerror="this.onerror=null; var s=document.createElement('script'); s.src='https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js'; document.head.appendChild(s);"></script>
 
         <script>
             (function() {
@@ -198,7 +199,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 var container = document.getElementById('canvas-container');
                 var fallback = document.getElementById('fallback');
                 var initAttempts = 0;
-                var maxAttempts = 20; // generous
+                var maxAttempts = 20;
 
                 function init() {
                     if (typeof THREE === 'undefined') {
@@ -228,7 +229,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     }
 
                     try {
-                        // Ensure container has dimensions
                         var w = container.clientWidth || window.innerWidth;
                         var h = container.clientHeight || window.innerHeight;
                         if (w === 0 || h === 0) {
@@ -821,9 +821,8 @@ with col_view:
         st.session_state.kata
     )
     
-    # Use st.components.v1.html – it still works reliably.
-    # The deprecation warning is harmless and can be ignored.
-    # We removed the 'scrolling' parameter to avoid keyword errors.
+    # Use st.components.v1.html – the deprecation warning is harmless.
+    # We removed 'scrolling' to avoid keyword errors.
     st.components.v1.html(viewer_html, height=650)
 
 with col_info:
