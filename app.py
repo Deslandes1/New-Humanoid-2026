@@ -129,7 +129,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- Viewer HTML generator (rewritten for reliability) ----
+# ---- Viewer HTML generator (with cache-busting and fixed backflip) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     # Colors
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -164,6 +164,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
+    # Cache-buster: add a unique comment so the iframe reloads on each command
+    import time as _time
+    cache_buster = f"<!-- {_time.time()} -->"
+
     # Build HTML with embedded JS
     html = f"""
     <!DOCTYPE html>
@@ -177,6 +181,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         </style>
     </head>
     <body>
+        {cache_buster}
         <canvas id="c"></canvas>
         <div id="info">🤖 {robot_name} | Command: {command if command else 'Idle'}</div>
         <script>
@@ -413,17 +418,18 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 let rot = 0;
                 let waveArm = undefined;
 
-                // Jump
-                if (cmd === 'jump' && animating) {{
-                    const dur = 1.2;
+                // Jump (and backflip also gets a jump)
+                if ((cmd === 'jump' || cmd === 'backflip') && animating) {{
+                    const dur = (cmd === 'jump') ? 1.2 : 1.5;
                     const t = Math.min(animTimer / dur, 1);
+                    // parabolic jump
                     yOff = -70 * 4 * t * (1 - t);
                 }}
-                // Backflip
+                // Backflip rotation (full somersault)
                 if (cmd === 'backflip' && animating) {{
                     const dur = 1.5;
                     const t = Math.min(animTimer / dur, 1);
-                    rot = t * 2 * Math.PI;
+                    rot = t * 2 * Math.PI;  // full 360° rotation
                 }}
                 // Wave arm
                 if (cmd === 'wave' && animating) {{
@@ -647,7 +653,7 @@ with col_view:
     )
     # Encode as data URI
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    # FIX: Use integer width (pixels) to avoid validation error
+    # Use integer width to avoid validation error
     st.iframe(data_uri, height=650, width=700)
 
 with col_info:
