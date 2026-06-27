@@ -152,7 +152,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Use a single reliable CDN (cdnjs) for Three.js and OrbitControls from the same source
+    # Use the most reliable CDN combo (cdnjs for three, jsdelivr for OrbitControls)
     html_template = """
     <!DOCTYPE html>
     <html>
@@ -179,14 +179,16 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         <div id="info">🤖 ROBOT_NAME | Command: COMMAND</div>
         <div id="fallback">⚠️ 3D engine failed to load.<br><small>Check the browser console (F12) for details.</small></div>
         
-        <!-- Load Three.js from CDN (cdnjs) -->
+        <!-- Load Three.js from cdnjs (reliable) -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js" 
                 onerror="document.getElementById('fallback').classList.add('show')"></script>
+        <!-- OrbitControls from jsdelivr (matches version) -->
         <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js" 
                 onerror="document.getElementById('fallback').classList.add('show')"></script>
         
         <script>
             (function() {
+                // Global error handler to show fallback on any uncaught error
                 window.onerror = function(msg, url, line, col, error) {
                     var fallback = document.getElementById('fallback');
                     fallback.classList.add('show');
@@ -198,13 +200,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 var container = document.getElementById('canvas-container');
                 var fallback = document.getElementById('fallback');
                 var initAttempts = 0;
-                var maxAttempts = 8;
+                var maxAttempts = 10;  // more attempts
                 
                 function init() {
                     if (typeof THREE === 'undefined') {
                         initAttempts++;
                         if (initAttempts < maxAttempts) {
-                            setTimeout(init, 300);
+                            setTimeout(init, 400);
                         } else {
                             fallback.classList.add('show');
                             fallback.innerHTML = '⚠️ Three.js failed to load after ' + maxAttempts + ' attempts.';
@@ -216,8 +218,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     var OrbitControlsCtor = THREE.OrbitControls || window.OrbitControls;
                     if (!OrbitControlsCtor) {
                         initAttempts++;
-                        if (initAttempts < maxAttempts + 3) {
-                            setTimeout(init, 200);
+                        if (initAttempts < maxAttempts + 5) {
+                            setTimeout(init, 300);
                             return;
                         } else {
                             fallback.classList.add('show');
@@ -228,15 +230,19 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     }
                     
                     try {
+                        // --- Build scene ---
                         var scene = new THREE.Scene();
                         scene.background = new THREE.Color(0x0a0a0f);
                         
-                        var camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 100);
+                        // Ensure container has dimensions
+                        var w = container.clientWidth || window.innerWidth;
+                        var h = container.clientHeight || window.innerHeight;
+                        var camera = new THREE.PerspectiveCamera(45, w / h, 0.1, 100);
                         camera.position.set(3, 2, 4);
                         camera.lookAt(0, 0.8, 0);
                         
                         var renderer = new THREE.WebGLRenderer({ antialias: true });
-                        renderer.setSize(container.clientWidth, container.clientHeight);
+                        renderer.setSize(w, h);
                         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
                         renderer.shadowMap.enabled = true;
                         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -660,6 +666,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     }
                 }
                 
+                // Start after a short delay to ensure scripts are loaded
                 setTimeout(init, 300);
             })();
         </script>
@@ -813,8 +820,9 @@ with col_view:
         st.session_state.kata
     )
     
-    # This is the stable, known-working component – the deprecation warning is harmless
-    st.components.v1.html(viewer_html, height=650, scrolling=True)
+    # Keep using st.components.v1.html – the deprecation warning is harmless.
+    # Remove 'scrolling' to avoid keyword errors on some versions.
+    st.components.v1.html(viewer_html, height=650)
 
 with col_info:
     st.markdown(f"""
