@@ -2,7 +2,6 @@ import streamlit as st
 import os
 import tempfile
 import time
-import base64
 import json
 
 try:
@@ -769,15 +768,8 @@ with col_view:
         st.session_state.kata
     )
     
-    # ---- Write to static file and embed ----
-    STATIC_DIR = "static"
-    os.makedirs(STATIC_DIR, exist_ok=True)
-    viewer_path = os.path.join(STATIC_DIR, "viewer.html")
-    with open(viewer_path, "w", encoding="utf-8") as f:
-        f.write(viewer_html)
-    
-    # IMPORTANT: No 'scrolling' parameter – this was causing the TypeError.
-    st.iframe(src="/static/viewer.html", height=650)
+    # ---- Use st.components.v1.html (still works, deprecation warning only) ----
+    st.components.v1.html(viewer_html, height=650, scrolling=True)
 
 with col_info:
     st.markdown(f"""
