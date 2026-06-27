@@ -647,8 +647,8 @@ with col_view:
     )
     # Encode as data URI
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    # FIX: width must be a valid value; using "100%" to fill column
-    st.iframe(data_uri, height=650, width="100%")
+    # FIX: Use integer width (pixels) to avoid validation error
+    st.iframe(data_uri, height=650, width=700)
 
 with col_info:
     st.markdown(f"""
