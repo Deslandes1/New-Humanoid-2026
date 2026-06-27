@@ -56,7 +56,7 @@ KATAS = {
 }
 
 def get_kata_sequence(kata_name):
-    # Updated: use "frontflip" instead of "backflip" for the forward flip
+    # Use "frontflip" as the flip in kata sequences
     base = [["bow", 2.0], ["walk", 3.0], ["jump", 1.2], ["wave", 2.0], ["frontflip", 1.5], ["walk", 3.0], ["bow", 2.0]]
     variations = {
         "Taikyoku Shodan": [["idle", 1.0]] + base,
@@ -530,7 +530,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             }}
             if (state.looping) {{
                 // Run is much faster
-                const speed = (state.cmd === 'walk') ? 2.2 : 7.0;
+                const speed = (state.cmd === 'walk') ? 2.2 : 8.0;
                 state.walkCycle += dt * speed;
                 return;
             }}
@@ -541,6 +541,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 else if (state.cmd === 'wave') dur = 2.0;
                 else if (state.cmd === 'frontflip' || state.cmd === 'backflip') dur = 1.5;
                 else if (state.cmd === 'bow') dur = 2.0;
+                // Update bow progress for standalone bow command
+                if (state.cmd === 'bow' && state.bowActive) {{
+                    state.bowProgress = Math.min(state.animTimer / dur, 1.0);
+                }}
                 if (state.animTimer >= dur) {{
                     state.animating = false;
                     state.cmd = 'idle';
@@ -554,7 +558,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         function animateRobot() {{
             // Determine swing amplitude: run has larger amplitude
             const isRun = (state.cmd === 'run');
-            const amp = isRun ? 1.0 : 0.5;
+            const amp = isRun ? 1.2 : 0.5;
             const swing = (state.cmd === 'walk' || isRun) ? Math.sin(state.walkCycle) * amp : 0;
 
             // Reset
