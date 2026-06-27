@@ -4,6 +4,7 @@ import tempfile
 import time
 import json
 import urllib.parse
+import random
 
 try:
     from gtts import gTTS
@@ -165,6 +166,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence_json = json.dumps(kata_sequence)
 
     # Build HTML with Three.js embedded – all JS braces are doubled!
+    # Also add a random number in a comment to force reload on each request
+    cache_buster = random.randint(100000, 999999)
     html = f"""
     <!DOCTYPE html>
     <html>
@@ -177,6 +180,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         </style>
     </head>
     <body>
+        <!-- cache-buster: {cache_buster} -->
         <div id="info">🤖 {robot_name} | Command: {command if command else 'Idle'}</div>
         <script type="importmap">
         {{
@@ -525,7 +529,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 return;
             }}
             if (state.looping) {{
-                state.walkCycle += dt * (state.cmd === 'walk' ? 2.2 : 3.6);
+                // Run is faster and has larger amplitude
+                const speed = (state.cmd === 'walk') ? 2.2 : 4.5;
+                state.walkCycle += dt * speed;
                 return;
             }}
             if (state.animating) {{
@@ -546,7 +552,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
         // ---- Apply animations to robot ----
         function animateRobot() {{
-            const swing = (state.cmd === 'walk' || state.cmd === 'run') ? Math.sin(state.walkCycle) * 0.5 : 0;
+            // Determine swing amplitude and speed factor
+            const isRun = (state.cmd === 'run');
+            const amp = isRun ? 0.75 : 0.5;   // larger swing for run
+            const swing = (state.cmd === 'walk' || isRun) ? Math.sin(state.walkCycle) * amp : 0;
 
             // Reset
             leftArmGroup.rotation.x = 0;
@@ -562,7 +571,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             torsoGroup.rotation.x = 0;
 
             // Walk/Run
-            if (state.cmd === 'walk' || state.cmd === 'run') {{
+            if (state.cmd === 'walk' || isRun) {{
                 const armSwing = swing * 0.8;
                 const legSwing = swing * 0.6;
                 const elbowSwing = swing * 0.3;
@@ -571,7 +580,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 // Shoulders
                 leftArmGroup.rotation.x = -armSwing;
                 rightArmGroup.rotation.x = armSwing;
-                // Elbows (forearms) - bend slightly in opposite direction
+                // Elbows
                 leftForearmGroup.rotation.x = -elbowSwing;
                 rightForearmGroup.rotation.x = elbowSwing;
 
@@ -823,7 +832,10 @@ with col_view:
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
+    # Encode as data URI and add a random fragment to force reload on each click
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
+    # Append a random fragment identifier to force iframe reload
+    data_uri += f"#{random.randint(1, 999999)}"
     st.iframe(data_uri, height=650, width=700)
 
 with col_info:
