@@ -32,7 +32,7 @@ st.set_page_config(
     page_icon="🤖"
 )
 
-# ---- Must be defined before any reference ----
+# ---- Must be defined first ----
 ROBOTS = {
     "Red Titan": {"color": "#ff3333", "accent": "#ff6666", "description": "Heavy combat model with reinforced armor."},
     "Blue Sentinel": {"color": "#3388ff", "accent": "#66aaff", "description": "Scout and reconnaissance unit."},
@@ -70,7 +70,7 @@ def get_kata_sequence(kata_name):
     }
     return variations.get(kata_name, base)
 
-# ---- Custom CSS ----
+# ---- CSS ----
 st.markdown("""
 <style>
     .stApp { background: #0a0a0f; color: #ffffff; }
@@ -129,7 +129,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----- HTML Viewer (plain script tags) -----
+# ----- HTML Viewer -----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     color_map = {"Red Titan": 0xff3333, "Blue Sentinel": 0x3388ff, "Green Viper": 0x33cc66, "Gold Phoenix": 0xffaa00, "Silver Ghost": 0xcccccc}
     main_color = color_map.get(robot_name, 0x3388ff)
@@ -754,13 +754,14 @@ col_view, col_info = st.columns([3, 1])
 
 with col_view:
     st.markdown("### 🖥️ Robot View")
+    # Generate the HTML
     viewer_html = get_robot_viewer_html(
         st.session_state.robot_selected,
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
-    # Use st.iframe (cleaner)
-    st.iframe(viewer_html, height=650, scrolling=False)
+    # Use st.components.v1.html (the only reliable method)
+    st.components.v1.html(viewer_html, height=650, scrolling=False)
 
 with col_info:
     st.markdown(f"""
