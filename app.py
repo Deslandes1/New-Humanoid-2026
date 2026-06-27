@@ -166,7 +166,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence_json = json.dumps(kata_sequence)
 
     # Build HTML with Three.js embedded – all JS braces are doubled!
-    # Also add a random number in a comment to force reload on each request
     cache_buster = random.randint(100000, 999999)
     html = f"""
     <!DOCTYPE html>
@@ -530,7 +529,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             }}
             if (state.looping) {{
                 // Run is faster and has larger amplitude
-                const speed = (state.cmd === 'walk') ? 2.2 : 4.5;
+                const speed = (state.cmd === 'walk') ? 2.2 : 6.0;  // increased run speed
                 state.walkCycle += dt * speed;
                 return;
             }}
@@ -554,7 +553,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         function animateRobot() {{
             // Determine swing amplitude and speed factor
             const isRun = (state.cmd === 'run');
-            const amp = isRun ? 0.75 : 0.5;   // larger swing for run
+            const amp = isRun ? 0.9 : 0.5;   // larger swing for run
             const swing = (state.cmd === 'walk' || isRun) ? Math.sin(state.walkCycle) * amp : 0;
 
             // Reset
@@ -568,6 +567,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             rightLowerLegGroup.rotation.x = 0;
             robotGroup.rotation.x = 0;
             robotGroup.position.y = 0.5;
+            robotGroup.position.z = 0;
             torsoGroup.rotation.x = 0;
 
             // Walk/Run
@@ -599,12 +599,15 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 robotGroup.position.y = 0.5 + y;
             }}
 
-            // Backflip
+            // Backflip - higher jump, full rotation, slight backward movement
             if (state.cmd === 'backflip' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.5, 1);
-                const y = 1.8 * 4 * t * (1 - t);
+                const y = 2.0 * 4 * t * (1 - t);   // higher jump
                 robotGroup.position.y = 0.5 + y;
-                robotGroup.rotation.x = t * 2 * Math.PI;
+                robotGroup.rotation.x = t * 2 * Math.PI;   // full 360° rotation
+                // move backward slightly during the flip
+                const backward = -0.3 * Math.sin(t * Math.PI);
+                robotGroup.position.z = backward;
             }}
 
             // Wave
@@ -832,9 +835,8 @@ with col_view:
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
-    # Encode as data URI and add a random fragment to force reload on each click
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    # Append a random fragment identifier to force iframe reload
+    # Append random fragment to force iframe reload
     data_uri += f"#{random.randint(1, 999999)}"
     st.iframe(data_uri, height=650, width=700)
 
