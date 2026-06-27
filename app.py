@@ -56,7 +56,8 @@ KATAS = {
 }
 
 def get_kata_sequence(kata_name):
-    base = [["bow", 2.0], ["walk", 3.0], ["jump", 1.2], ["wave", 2.0], ["backflip", 1.5], ["walk", 3.0], ["bow", 2.0]]
+    # Updated: use "frontflip" instead of "backflip" for the forward flip
+    base = [["bow", 2.0], ["walk", 3.0], ["jump", 1.2], ["wave", 2.0], ["frontflip", 1.5], ["walk", 3.0], ["bow", 2.0]]
     variations = {
         "Taikyoku Shodan": [["idle", 1.0]] + base,
         "Heian Shodan": base + [["idle", 1.0]],
@@ -66,8 +67,8 @@ def get_kata_sequence(kata_name):
         "Heian Godan": base[:2] + [["jump", 1.2], ["walk", 2.0]] + base[3:],
         "Tekki Shodan": [["bow", 2.0], ["idle", 2.0]] + base[2:],
         "Bassai Dai": base + [["idle", 2.0]],
-        "Kanku Dai": [["walk", 4.0], ["jump", 1.2], ["wave", 2.0], ["backflip", 1.5], ["walk", 4.0]],
-        "Gojushiho": [["bow", 3.0], ["walk", 3.0], ["run", 3.0], ["jump", 1.2], ["backflip", 1.5], ["wave", 2.0], ["bow", 2.0]]
+        "Kanku Dai": [["walk", 4.0], ["jump", 1.2], ["wave", 2.0], ["frontflip", 1.5], ["walk", 4.0]],
+        "Gojushiho": [["bow", 3.0], ["walk", 3.0], ["run", 3.0], ["jump", 1.2], ["frontflip", 1.5], ["wave", 2.0], ["bow", 2.0]]
     }
     return variations.get(kata_name, base)
 
@@ -156,8 +157,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         headband_color = "#ff0000"
         belt_rank = ""
 
-    # Command
-    valid_commands = ['walk', 'run', 'jump', 'wave', 'backflip', 'bow']
+    # Command – include both frontflip and backflip
+    valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow']
     cmd_lower = command.lower() if command else "idle"
     anim_cmd = cmd_lower if cmd_lower in valid_commands else 'idle'
 
@@ -528,8 +529,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 return;
             }}
             if (state.looping) {{
-                // Run is faster and has larger amplitude
-                const speed = (state.cmd === 'walk') ? 2.2 : 6.0;  // increased run speed
+                // Run is much faster
+                const speed = (state.cmd === 'walk') ? 2.2 : 7.0;
                 state.walkCycle += dt * speed;
                 return;
             }}
@@ -538,7 +539,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 let dur = 1.2;
                 if (state.cmd === 'jump') dur = 1.2;
                 else if (state.cmd === 'wave') dur = 2.0;
-                else if (state.cmd === 'backflip') dur = 1.5;
+                else if (state.cmd === 'frontflip' || state.cmd === 'backflip') dur = 1.5;
                 else if (state.cmd === 'bow') dur = 2.0;
                 if (state.animTimer >= dur) {{
                     state.animating = false;
@@ -551,9 +552,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
         // ---- Apply animations to robot ----
         function animateRobot() {{
-            // Determine swing amplitude and speed factor
+            // Determine swing amplitude: run has larger amplitude
             const isRun = (state.cmd === 'run');
-            const amp = isRun ? 0.9 : 0.5;   // larger swing for run
+            const amp = isRun ? 1.0 : 0.5;
             const swing = (state.cmd === 'walk' || isRun) ? Math.sin(state.walkCycle) * amp : 0;
 
             // Reset
@@ -577,17 +578,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 const elbowSwing = swing * 0.3;
                 const kneeSwing = swing * 0.3;
 
-                // Shoulders
                 leftArmGroup.rotation.x = -armSwing;
                 rightArmGroup.rotation.x = armSwing;
-                // Elbows
                 leftForearmGroup.rotation.x = -elbowSwing;
                 rightForearmGroup.rotation.x = elbowSwing;
-
-                // Hips
                 leftLegGroup.rotation.x = legSwing;
                 rightLegGroup.rotation.x = -legSwing;
-                // Knees
                 leftLowerLegGroup.rotation.x = -kneeSwing;
                 rightLowerLegGroup.rotation.x = kneeSwing;
             }}
@@ -599,15 +595,22 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 robotGroup.position.y = 0.5 + y;
             }}
 
-            // Backflip - higher jump, full rotation, slight backward movement
+            // Frontflip (forward rotation, backward movement)
+            if (state.cmd === 'frontflip' && state.animating) {{
+                const t = Math.min(state.animTimer / 1.5, 1);
+                const y = 2.0 * 4 * t * (1 - t);
+                robotGroup.position.y = 0.5 + y;
+                robotGroup.rotation.x = t * 2 * Math.PI;          // forward roll
+                robotGroup.position.z = -0.3 * Math.sin(t * Math.PI); // move backward
+            }}
+
+            // Backflip (backward rotation, forward movement)
             if (state.cmd === 'backflip' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.5, 1);
-                const y = 2.0 * 4 * t * (1 - t);   // higher jump
+                const y = 2.0 * 4 * t * (1 - t);
                 robotGroup.position.y = 0.5 + y;
-                robotGroup.rotation.x = t * 2 * Math.PI;   // full 360° rotation
-                // move backward slightly during the flip
-                const backward = -0.3 * Math.sin(t * Math.PI);
-                robotGroup.position.z = backward;
+                robotGroup.rotation.x = -t * 2 * Math.PI;         // backward roll (negative)
+                robotGroup.position.z = 0.3 * Math.sin(t * Math.PI);  // move forward
             }}
 
             // Wave
@@ -779,8 +782,8 @@ with st.sidebar:
     st.markdown("---")
 
     st.markdown("### 🎮 Commands")
-    st.markdown("*Walk and Run loop continuously. Jump, Wave, Backflip, Bow play once.*")
-    action_input = st.text_input("Action (e.g., walk, run, jump, wave, backflip, bow)", key="action_input",
+    st.markdown("*Walk and Run loop continuously. Jump, Wave, Frontflip, Backflip, Bow play once.*")
+    action_input = st.text_input("Action (e.g., walk, run, jump, wave, frontflip, backflip, bow)", key="action_input",
                                  placeholder="e.g., backflip")
     if st.button("▶️ Execute Action", use_container_width=True):
         if action_input.strip():
