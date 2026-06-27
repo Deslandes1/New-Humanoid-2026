@@ -769,11 +769,13 @@ with col_view:
         st.session_state.kata
     )
     
-    # ---- FIXED: Removed 'scrolling' parameter to avoid TypeError ----
-    html_bytes = viewer_html.encode('utf-8')
-    b64 = base64.b64encode(html_bytes).decode('utf-8')
-    data_uri = f"data:text/html;base64,{b64}"
-    st.iframe(src=data_uri, height=650)   # 'scrolling' removed
+    # ---- Write HTML to static file and embed via iframe ----
+    STATIC_DIR = "static"
+    os.makedirs(STATIC_DIR, exist_ok=True)
+    viewer_path = os.path.join(STATIC_DIR, "viewer.html")
+    with open(viewer_path, "w", encoding="utf-8") as f:
+        f.write(viewer_html)
+    st.iframe(src="/static/viewer.html", height=650)
 
 with col_info:
     st.markdown(f"""
