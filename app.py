@@ -70,7 +70,7 @@ def get_kata_sequence(kata_name):
     }
     return variations.get(kata_name, base)
 
-# ---- CSS ----
+# ---- Custom CSS ----
 st.markdown("""
 <style>
     .stApp { background: #0a0a0f; color: #ffffff; }
@@ -754,14 +754,13 @@ col_view, col_info = st.columns([3, 1])
 
 with col_view:
     st.markdown("### 🖥️ Robot View")
-    # Generate the HTML
     viewer_html = get_robot_viewer_html(
         st.session_state.robot_selected,
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
-    # Use st.components.v1.html (the only reliable method)
-    st.components.v1.html(viewer_html, height=650, scrolling=False)
+    # Use st.components.v1.html with scrolling=True
+    st.components.v1.html(viewer_html, height=650, scrolling=True)
 
 with col_info:
     st.markdown(f"""
