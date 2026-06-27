@@ -759,7 +759,7 @@ with col_view:
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
-    # Use st.components.v1.html with scrolling=True
+    # Use st.components.v1.html (scrolling is valid here)
     st.components.v1.html(viewer_html, height=650, scrolling=True)
 
 with col_info:
