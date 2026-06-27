@@ -32,7 +32,45 @@ st.set_page_config(
     page_icon="🤖"
 )
 
-# Custom CSS
+# ---- Must be defined before any reference ----
+ROBOTS = {
+    "Red Titan": {"color": "#ff3333", "accent": "#ff6666", "description": "Heavy combat model with reinforced armor."},
+    "Blue Sentinel": {"color": "#3388ff", "accent": "#66aaff", "description": "Scout and reconnaissance unit."},
+    "Green Viper": {"color": "#33cc66", "accent": "#66ff99", "description": "Stealth and agility specialist."},
+    "Gold Phoenix": {"color": "#ffaa00", "accent": "#ffcc44", "description": "Command and leadership unit."},
+    "Silver Ghost": {"color": "#cccccc", "accent": "#eeeeee", "description": "Advanced prototype with unknown capabilities."}
+}
+
+KATAS = {
+    "Taikyoku Shodan": {"kimono": "#f0f0f0", "belt": "#ffffff", "headband": "#ff0000", "belt_rank": "White"},
+    "Heian Shodan": {"kimono": "#f0f0f0", "belt": "#ffff00", "headband": "#0000ff", "belt_rank": "Yellow"},
+    "Heian Nidan": {"kimono": "#f0f0f0", "belt": "#ffa500", "headband": "#00ff00", "belt_rank": "Orange"},
+    "Heian Sandan": {"kimono": "#f0f0f0", "belt": "#00ff00", "headband": "#ffff00", "belt_rank": "Green"},
+    "Heian Yondan": {"kimono": "#f0f0f0", "belt": "#800080", "headband": "#ffa500", "belt_rank": "Purple"},
+    "Heian Godan": {"kimono": "#f0f0f0", "belt": "#8b4513", "headband": "#800080", "belt_rank": "Brown"},
+    "Tekki Shodan": {"kimono": "#0000ff", "belt": "#8b4513", "headband": "#ff0000", "belt_rank": "Brown"},
+    "Bassai Dai": {"kimono": "#0000ff", "belt": "#000000", "headband": "#ffffff", "belt_rank": "Black"},
+    "Kanku Dai": {"kimono": "#000000", "belt": "#000000", "headband": "#ffd700", "belt_rank": "Black"},
+    "Gojushiho": {"kimono": "#000000", "belt": "#000000", "headband": "#c0c0c0", "belt_rank": "Black"}
+}
+
+def get_kata_sequence(kata_name):
+    base = [["bow", 2.0], ["walk", 3.0], ["jump", 1.2], ["wave", 2.0], ["backflip", 1.5], ["walk", 3.0], ["bow", 2.0]]
+    variations = {
+        "Taikyoku Shodan": [["idle", 1.0]] + base,
+        "Heian Shodan": base + [["idle", 1.0]],
+        "Heian Nidan": [["walk", 2.0], ["run", 2.0]] + base[2:],
+        "Heian Sandan": base[:3] + [["run", 2.0]] + base[3:],
+        "Heian Yondan": base[:4] + [["idle", 1.0]] + base[4:],
+        "Heian Godan": base[:2] + [["jump", 1.2], ["walk", 2.0]] + base[3:],
+        "Tekki Shodan": [["bow", 2.0], ["idle", 2.0]] + base[2:],
+        "Bassai Dai": base + [["idle", 2.0]],
+        "Kanku Dai": [["walk", 4.0], ["jump", 1.2], ["wave", 2.0], ["backflip", 1.5], ["walk", 4.0]],
+        "Gojushiho": [["bow", 3.0], ["walk", 3.0], ["run", 3.0], ["jump", 1.2], ["backflip", 1.5], ["wave", 2.0], ["bow", 2.0]]
+    }
+    return variations.get(kata_name, base)
+
+# ---- Custom CSS ----
 st.markdown("""
 <style>
     .stApp { background: #0a0a0f; color: #ffffff; }
@@ -75,19 +113,8 @@ st.markdown("""
         display: block;
         margin: 0 auto 8px auto;
     }
-    .profile-name {
-        color: #ffffff;
-        text-align: center;
-        margin-top: 8px;
-        margin-bottom: 0;
-        font-size: 1.2rem;
-    }
-    .profile-title {
-        color: #8899bb;
-        text-align: center;
-        font-size: 0.9rem;
-        margin-top: 0;
-    }
+    .profile-name { color: #ffffff; text-align: center; margin-top: 8px; margin-bottom: 0; font-size: 1.2rem; }
+    .profile-title { color: #8899bb; text-align: center; font-size: 0.9rem; margin-top: 0; }
     .status-panel {
         background: rgba(20,30,50,0.5);
         border: 1px solid #2a3a5a;
@@ -96,61 +123,11 @@ st.markdown("""
         margin-bottom: 15px;
         text-align: center;
     }
-    .status-panel .label {
-        color: #8899bb;
-        font-size: 0.8rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-    .status-panel .value {
-        color: #00d4ff;
-        font-size: 1.2rem;
-        font-weight: 600;
-    }
-    .backstage {
-        margin-top: 20px;
-    }
+    .status-panel .label { color: #8899bb; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+    .status-panel .value { color: #00d4ff; font-size: 1.2rem; font-weight: 600; }
+    .backstage { margin-top: 20px; }
 </style>
 """, unsafe_allow_html=True)
-
-# ---- 5 Robot Models ----
-ROBOTS = {
-    "Red Titan": {"color": "#ff3333", "accent": "#ff6666", "description": "Heavy combat model with reinforced armor."},
-    "Blue Sentinel": {"color": "#3388ff", "accent": "#66aaff", "description": "Scout and reconnaissance unit."},
-    "Green Viper": {"color": "#33cc66", "accent": "#66ff99", "description": "Stealth and agility specialist."},
-    "Gold Phoenix": {"color": "#ffaa00", "accent": "#ffcc44", "description": "Command and leadership unit."},
-    "Silver Ghost": {"color": "#cccccc", "accent": "#eeeeee", "description": "Advanced prototype with unknown capabilities."}
-}
-
-# ---- 10 Katas ----
-KATAS = {
-    "Taikyoku Shodan": {"kimono": "#f0f0f0", "belt": "#ffffff", "headband": "#ff0000", "belt_rank": "White"},
-    "Heian Shodan": {"kimono": "#f0f0f0", "belt": "#ffff00", "headband": "#0000ff", "belt_rank": "Yellow"},
-    "Heian Nidan": {"kimono": "#f0f0f0", "belt": "#ffa500", "headband": "#00ff00", "belt_rank": "Orange"},
-    "Heian Sandan": {"kimono": "#f0f0f0", "belt": "#00ff00", "headband": "#ffff00", "belt_rank": "Green"},
-    "Heian Yondan": {"kimono": "#f0f0f0", "belt": "#800080", "headband": "#ffa500", "belt_rank": "Purple"},
-    "Heian Godan": {"kimono": "#f0f0f0", "belt": "#8b4513", "headband": "#800080", "belt_rank": "Brown"},
-    "Tekki Shodan": {"kimono": "#0000ff", "belt": "#8b4513", "headband": "#ff0000", "belt_rank": "Brown"},
-    "Bassai Dai": {"kimono": "#0000ff", "belt": "#000000", "headband": "#ffffff", "belt_rank": "Black"},
-    "Kanku Dai": {"kimono": "#000000", "belt": "#000000", "headband": "#ffd700", "belt_rank": "Black"},
-    "Gojushiho": {"kimono": "#000000", "belt": "#000000", "headband": "#c0c0c0", "belt_rank": "Black"}
-}
-
-def get_kata_sequence(kata_name):
-    base = [["bow", 2.0], ["walk", 3.0], ["jump", 1.2], ["wave", 2.0], ["backflip", 1.5], ["walk", 3.0], ["bow", 2.0]]
-    variations = {
-        "Taikyoku Shodan": [["idle", 1.0]] + base,
-        "Heian Shodan": base + [["idle", 1.0]],
-        "Heian Nidan": [["walk", 2.0], ["run", 2.0]] + base[2:],
-        "Heian Sandan": base[:3] + [["run", 2.0]] + base[3:],
-        "Heian Yondan": base[:4] + [["idle", 1.0]] + base[4:],
-        "Heian Godan": base[:2] + [["jump", 1.2], ["walk", 2.0]] + base[3:],
-        "Tekki Shodan": [["bow", 2.0], ["idle", 2.0]] + base[2:],
-        "Bassai Dai": base + [["idle", 2.0]],
-        "Kanku Dai": [["walk", 4.0], ["jump", 1.2], ["wave", 2.0], ["backflip", 1.5], ["walk", 4.0]],
-        "Gojushiho": [["bow", 3.0], ["walk", 3.0], ["run", 3.0], ["jump", 1.2], ["backflip", 1.5], ["wave", 2.0], ["bow", 2.0]]
-    }
-    return variations.get(kata_name, base)
 
 # ----- HTML Viewer (plain script tags) -----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
@@ -176,7 +153,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Plain script tags (no importmap)
     html_template = """
     <!DOCTYPE html>
     <html>
@@ -202,7 +178,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 var container = document.getElementById('canvas-container');
                 var fallback = document.getElementById('fallback');
                 
-                // Check if THREE loaded
                 if (typeof THREE === 'undefined') {
                     fallback.style.display = 'block';
                     return;
@@ -784,7 +759,7 @@ with col_view:
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
-    # Use st.iframe instead of st.components.v1.html
+    # Use st.iframe (cleaner)
     st.iframe(viewer_html, height=650, scrolling=False)
 
 with col_info:
