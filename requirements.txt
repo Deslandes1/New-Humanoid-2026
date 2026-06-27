@@ -1,2 +1,2 @@
-streamlit>=1.28.0
-gtts>=2.3.0
+streamlit>=1.36
+gTTS>=2.5.4
