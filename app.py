@@ -4,6 +4,7 @@ import tempfile
 import time
 import json
 import urllib.parse
+import base64
 
 try:
     from gtts import gTTS
@@ -32,7 +33,7 @@ st.set_page_config(
     page_icon="🤖"
 )
 
-# ---- Must be defined first ----
+# ---- Data ----
 ROBOTS = {
     "Red Titan": {"color": "#ff3333", "accent": "#ff6666", "description": "Heavy combat model with reinforced armor."},
     "Blue Sentinel": {"color": "#3388ff", "accent": "#66aaff", "description": "Scout and reconnaissance unit."},
@@ -129,457 +130,393 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ----- Build the 2D Canvas viewer HTML (fixed animations) -----
+# ---- Viewer HTML generator (rewritten for reliability) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
-    # Get colors for the robot
-    color_map = {"Red Titan": "#ff3333", "Blue Sentinel": "#3388ff", "Green Viper": "#33cc66", "Gold Phoenix": "#ffaa00", "Silver Ghost": "#cccccc"}
+    # Colors
+    color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
     main_color = color_map.get(robot_name, "#3388ff")
-    # Convert hex to RGB for canvas
-    def hex_to_rgb(hex_color):
-        h = hex_color.lstrip('#')
+    def hex_to_rgb(h):
+        h = h.lstrip('#')
         return tuple(int(h[i:i+2], 16) for i in (0, 2, 4))
-    main_rgb = hex_to_rgb(main_color)
-    accent_rgb = (min(255, main_rgb[0]+60), min(255, main_rgb[1]+60), min(255, main_rgb[2]+60))
+    mr = hex_to_rgb(main_color)
+    accent_rgb = (min(255, mr[0]+60), min(255, mr[1]+60), min(255, mr[2]+60))
+    accent_color = f"rgb({accent_rgb[0]},{accent_rgb[1]},{accent_rgb[2]})"
 
-    is_kata = kata_name is not None
-    kata_info = KATAS.get(kata_name, None) if is_kata else None
-    if is_kata and kata_info:
-        kimono_color = kata_info["kimono"]
-        belt_color = kata_info["belt"]
-        headband_color = kata_info["headband"]
-        belt_rank = kata_info["belt_rank"]
+    # Kata info
+    is_kata = kata_name is not None and kata_name in KATAS
+    if is_kata:
+        ki = KATAS[kata_name]
+        kimono_color = ki["kimono"]
+        belt_color = ki["belt"]
+        headband_color = ki["headband"]
+        belt_rank = ki["belt_rank"]
     else:
         kimono_color = main_color
         belt_color = main_color
-        headband_color = "#ff0000"  # default
+        headband_color = "#ff0000"
         belt_rank = ""
 
+    # Command
+    valid_commands = ['walk', 'run', 'jump', 'wave', 'backflip', 'bow']
     cmd_lower = command.lower() if command else "idle"
-    valid_commands = ['walk', 'run', 'jump', 'wave', 'backflip']
     anim_cmd = cmd_lower if cmd_lower in valid_commands else 'idle'
 
+    # Kata sequence
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Build the HTML with canvas and animation (fully rewritten JS)
-    html_template = """
+    # Build HTML with embedded JS
+    html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
         <style>
-            body { margin: 0; background: #0a0a0f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }
-            canvas { display: block; background: #0a0a0f; }
-            #info { position: absolute; bottom: 20px; left: 20px; color: #8899bb; font-size: 14px; pointer-events: none; z-index: 10; }
+            body {{ margin: 0; background: #0a0a0f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }}
+            canvas {{ display: block; background: #0a0a0f; }}
+            #info {{ position: absolute; bottom: 20px; left: 20px; color: #8899bb; font-size: 14px; pointer-events: none; z-index: 10; }}
         </style>
     </head>
     <body>
-        <canvas id="canvas"></canvas>
-        <div id="info">🤖 ROBOT_NAME | Command: COMMAND</div>
+        <canvas id="c"></canvas>
+        <div id="info">🤖 {robot_name} | Command: {command if command else 'Idle'}</div>
         <script>
-            (function() {
-                const canvas = document.getElementById('canvas');
-                const ctx = canvas.getContext('2d');
-                let width, height;
+        (function() {{
+            const canvas = document.getElementById('c');
+            const ctx = canvas.getContext('2d');
+            let W, H;
+            function resize() {{ W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; }}
+            window.addEventListener('resize', resize);
+            resize();
 
-                function resize() {
-                    width = window.innerWidth;
-                    height = window.innerHeight;
-                    canvas.width = width;
-                    canvas.height = height;
-                }
-                window.addEventListener('resize', resize);
-                resize();
+            // Constants
+            const MAIN = '{main_color}';
+            const ACCENT = '{accent_color}';
+            const KIMONO = '{kimono_color}';
+            const BELT = '{belt_color}';
+            const HEADBAND = '{headband_color}';
+            const IS_KATA = {str(is_kata).lower()};
+            const KATA_SEQ = {kata_sequence_json};
+            const INIT_CMD = '{anim_cmd}';
+            const VALID_CMDS = {json.dumps(valid_commands)};
 
-                // Robot parameters (injected from Python)
-                const mainColor = 'MAIN_COLOR';
-                const accentColor = 'ACCENT_COLOR';
-                const kimonoColor = 'KIMONO_COLOR';
-                const beltColor = 'BELT_COLOR';
-                const headbandColor = 'HEADBAND_COLOR';
-                const isKata = IS_KATA;
-                const kataSequence = KATA_SEQUENCE;
-                const initialCommand = 'ANIM_CMD';
-                const validCommands = []; // will be replaced
+            // Robot dimensions
+            const HS = 40, TH = 80, TW = 60, AL = 60, LL = 70;
 
-                // Robot parts dimensions
-                const headSize = 40;
-                const torsoHeight = 80;
-                const torsoWidth = 60;
-                const armLen = 60;
-                const legLen = 70;
+            // State
+            let cmd = 'idle';
+            let looping = false;
+            let animating = false;
+            let animTimer = 0;
+            let walkCycle = 0;
+            let bowActive = false;
+            let bowProgress = 0;
 
-                // ---- State ----
-                let currentCommand = 'idle';      // walk, run, jump, wave, backflip, bow, idle
-                let isLooping = false;            // true for walk/run
-                let isAnimating = false;          // true when an animation is playing (non-loop)
-                let animTimer = 0;
-                let walkCycle = 0;
-                let bowActive = false;
-                let bowProgress = 0;
+            // Kata state
+            let kataRunning = false;
+            let kataIdx = 0;
+            let kataTimer = 0;
+            let kataComplete = false;
+            let kataAction = null;
 
-                // Kata state
-                let kataRunning = false;
-                let kataIndex = 0;
-                let kataTimer = 0;
-                let kataComplete = false;
-                let kataAction = null;             // ['type', duration]
+            // Drawing functions
+            function drawRobot(swing, yOff, rot, waveArm) {{
+                ctx.save();
+                ctx.translate(W/2, H/2 + 30 + (yOff || 0));
+                if (rot) ctx.rotate(rot);
 
-                // ---- Drawing functions ----
-                function drawRobot(swing) {
-                    ctx.save();
-                    ctx.translate(width/2, height/2 + 30);
+                // Torso
+                ctx.fillStyle = KIMONO;
+                ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                ctx.shadowBlur = 12;
+                ctx.fillRect(-TW/2, -TH/2, TW, TH);
+                ctx.shadowBlur = 0;
 
-                    // ---- Torso ----
-                    ctx.fillStyle = kimonoColor;
-                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
-                    ctx.shadowBlur = 10;
-                    ctx.fillRect(-torsoWidth/2, -torsoHeight/2, torsoWidth, torsoHeight);
-                    ctx.shadowBlur = 0;
+                // Belt
+                ctx.fillStyle = BELT;
+                ctx.fillRect(-TW/2+5, TH/2-8, TW-10, 10);
 
-                    // Belt
-                    ctx.fillStyle = beltColor;
-                    ctx.fillRect(-torsoWidth/2 + 5, torsoHeight/2 - 8, torsoWidth - 10, 10);
+                // Chest
+                ctx.fillStyle = ACCENT;
+                ctx.fillRect(-15, -TH/2+10, 30, 15);
 
-                    // Chest detail
-                    ctx.fillStyle = accentColor;
-                    ctx.fillRect(-15, -torsoHeight/2 + 10, 30, 15);
-
-                    // ---- Head ----
-                    ctx.save();
-                    ctx.translate(0, -torsoHeight/2 - headSize/2 + 5);
-                    ctx.fillStyle = '#aaaaaa';
-                    ctx.fillRect(-headSize/2, -headSize/2, headSize, headSize);
-                    // Visor
-                    ctx.fillStyle = '#00ddff';
-                    ctx.shadowColor = '#00bbff';
-                    ctx.shadowBlur = 15;
-                    ctx.fillRect(-headSize/3, -headSize/6, headSize*2/3, headSize/4);
-                    ctx.shadowBlur = 0;
-                    // Antenna
-                    ctx.fillStyle = '#ffaa00';
-                    ctx.fillRect(-3, -headSize/2 - 15, 6, 15);
+                // Head
+                ctx.save();
+                ctx.translate(0, -TH/2 - HS/2 + 5);
+                ctx.fillStyle = '#aaaaaa';
+                ctx.fillRect(-HS/2, -HS/2, HS, HS);
+                ctx.fillStyle = '#00ddff';
+                ctx.shadowColor = '#00bbff';
+                ctx.shadowBlur = 18;
+                ctx.fillRect(-HS/3, -HS/6, HS*2/3, HS/4);
+                ctx.shadowBlur = 0;
+                // Antenna
+                ctx.fillStyle = '#ffaa00';
+                ctx.fillRect(-3, -HS/2-14, 6, 14);
+                ctx.beginPath();
+                ctx.arc(0, -HS/2-14, 5, 0, 2*Math.PI);
+                ctx.fill();
+                if (IS_KATA) {{
+                    ctx.strokeStyle = HEADBAND;
+                    ctx.lineWidth = 5;
                     ctx.beginPath();
-                    ctx.arc(0, -headSize/2 - 15, 6, 0, 2*Math.PI);
-                    ctx.fill();
-                    // Headband (kata)
-                    if (isKata) {
-                        ctx.strokeStyle = headbandColor;
-                        ctx.lineWidth = 6;
-                        ctx.beginPath();
-                        ctx.arc(0, 0, headSize/2 + 2, 0, 2*Math.PI);
-                        ctx.stroke();
-                    }
-                    ctx.restore();
+                    ctx.arc(0, 0, HS/2+2, 0, 2*Math.PI);
+                    ctx.stroke();
+                }}
+                ctx.restore();
 
-                    // ---- Arms ----
-                    const shoulderX = torsoWidth/2 + 5;
-                    const shoulderY = -torsoHeight/2 + 10;
+                // Arms
+                const sx = TW/2 + 5, sy = -TH/2 + 10;
+                // Left arm
+                ctx.save();
+                ctx.translate(-sx, sy);
+                let ls = 0;
+                if (cmd === 'walk' || cmd === 'run') ls = -swing * 0.5;
+                ctx.rotate(ls);
+                ctx.fillStyle = KIMONO;
+                ctx.fillRect(-8, 0, 16, AL);
+                ctx.fillStyle = '#cccccc';
+                ctx.fillRect(-6, AL-5, 12, 12);
+                ctx.restore();
 
-                    // Left arm
-                    ctx.save();
-                    ctx.translate(-shoulderX, shoulderY);
-                    let leftSwing = 0;
-                    if (currentCommand === 'walk' || currentCommand === 'run') {
-                        leftSwing = -swing * 0.5;
-                    }
-                    ctx.rotate(leftSwing);
-                    ctx.fillStyle = kimonoColor;
-                    ctx.fillRect(-8, 0, 16, armLen);
-                    ctx.fillStyle = '#cccccc';
-                    ctx.fillRect(-6, armLen-5, 12, 12);
-                    ctx.restore();
+                // Right arm
+                ctx.save();
+                ctx.translate(sx, sy);
+                let rs = 0;
+                if (cmd === 'walk' || cmd === 'run') rs = swing * 0.5;
+                else if (cmd === 'wave') rs = waveArm !== undefined ? waveArm : (-1.2 + Math.sin(Date.now()/200)*0.5);
+                else if (cmd === 'jump') rs = -0.2;
+                ctx.rotate(rs);
+                ctx.fillStyle = KIMONO;
+                ctx.fillRect(-8, 0, 16, AL);
+                ctx.fillStyle = '#cccccc';
+                ctx.fillRect(-6, AL-5, 12, 12);
+                ctx.restore();
 
-                    // Right arm
-                    ctx.save();
-                    ctx.translate(shoulderX, shoulderY);
-                    let rightSwing = 0;
-                    if (currentCommand === 'walk' || currentCommand === 'run') {
-                        rightSwing = swing * 0.5;
-                    } else if (currentCommand === 'wave') {
-                        // Wave: raise right arm up and wiggle
-                        rightSwing = -1.2 + Math.sin(Date.now() / 200) * 0.5;
-                    }
-                    ctx.rotate(rightSwing);
-                    ctx.fillStyle = kimonoColor;
-                    ctx.fillRect(-8, 0, 16, armLen);
-                    ctx.fillStyle = '#cccccc';
-                    ctx.fillRect(-6, armLen-5, 12, 12);
-                    ctx.restore();
+                // Legs
+                const hy = TH/2 - 5, lw = 12;
+                ctx.save();
+                ctx.translate(-TW/4, hy);
+                let lls = 0;
+                if (cmd === 'walk' || cmd === 'run') lls = -swing * 0.5;
+                ctx.rotate(lls);
+                ctx.fillStyle = KIMONO;
+                ctx.fillRect(-lw/2, 0, lw, LL);
+                ctx.fillStyle = '#333';
+                ctx.fillRect(-lw/2-3, LL-5, lw+6, 8);
+                ctx.restore();
 
-                    // ---- Legs ----
-                    const hipY = torsoHeight/2 - 5;
-                    const legWidth = 12;
+                ctx.save();
+                ctx.translate(TW/4, hy);
+                let rls = 0;
+                if (cmd === 'walk' || cmd === 'run') rls = swing * 0.5;
+                ctx.rotate(rls);
+                ctx.fillStyle = KIMONO;
+                ctx.fillRect(-lw/2, 0, lw, LL);
+                ctx.fillStyle = '#333';
+                ctx.fillRect(-lw/2-3, LL-5, lw+6, 8);
+                ctx.restore();
 
-                    // Left leg
-                    ctx.save();
-                    ctx.translate(-torsoWidth/4, hipY);
-                    let leftLegSwing = 0;
-                    if (currentCommand === 'walk' || currentCommand === 'run') {
-                        leftLegSwing = -swing * 0.5;
-                    }
-                    ctx.rotate(leftLegSwing);
-                    ctx.fillStyle = kimonoColor;
-                    ctx.fillRect(-legWidth/2, 0, legWidth, legLen);
-                    ctx.fillStyle = '#333333';
-                    ctx.fillRect(-legWidth/2 - 3, legLen-5, legWidth+6, 8);
-                    ctx.restore();
+                ctx.restore();
+            }}
 
-                    // Right leg
-                    ctx.save();
-                    ctx.translate(torsoWidth/4, hipY);
-                    let rightLegSwing = 0;
-                    if (currentCommand === 'walk' || currentCommand === 'run') {
-                        rightLegSwing = swing * 0.5;
-                    }
-                    ctx.rotate(rightLegSwing);
-                    ctx.fillStyle = kimonoColor;
-                    ctx.fillRect(-legWidth/2, 0, legWidth, legLen);
-                    ctx.fillStyle = '#333333';
-                    ctx.fillRect(-legWidth/2 - 3, legLen-5, legWidth+6, 8);
-                    ctx.restore();
-
-                    ctx.restore();
-                }
-
-                // ---- Update logic ----
-                function update(delta) {
-                    if (kataRunning && !kataComplete) {
-                        // Kata mode: process actions sequentially
-                        if (kataAction === null) {
-                            // Start first action
-                            if (kataIndex < kataSequence.length) {
-                                kataAction = kataSequence[kataIndex];
-                                kataTimer = 0;
-                                // Set the command based on action type
-                                const type = kataAction[0];
-                                if (type === 'walk' || type === 'run') {
-                                    currentCommand = type;
-                                    isLooping = true;
-                                    isAnimating = true;
-                                    bowActive = false;
-                                } else if (type === 'idle') {
-                                    currentCommand = 'idle';
-                                    isLooping = false;
-                                    isAnimating = false;
-                                    bowActive = false;
-                                } else if (type === 'bow') {
-                                    currentCommand = 'bow';
-                                    isLooping = false;
-                                    isAnimating = false;
-                                    bowActive = true;
-                                    bowProgress = 0;
-                                } else {
-                                    // jump, wave, backflip
-                                    currentCommand = type;
-                                    isLooping = false;
-                                    isAnimating = true;
-                                    bowActive = false;
-                                }
-                            } else {
-                                kataComplete = true;
-                                kataRunning = false;
-                                currentCommand = 'idle';
-                                isAnimating = false;
-                                isLooping = false;
-                                bowActive = false;
-                                return;
-                            }
-                        }
-
-                        // Advance timer
-                        kataTimer += delta;
-                        const duration = kataAction[1];
-
-                        // Check if action is complete
-                        if (kataTimer >= duration) {
-                            // Move to next action
-                            kataIndex++;
-                            kataAction = null;
-                            // Reset animation state
-                            isAnimating = false;
-                            isLooping = false;
-                            bowActive = false;
-                            // The next update will load the next action
-                            return;
-                        }
-
-                        // While action is playing, we let the normal drawing handle it
-                        // But for bow, we update bowProgress
-                        if (currentCommand === 'bow') {
-                            bowProgress = Math.min(kataTimer / duration, 1.0);
-                        }
-
-                        // For walk/run, we already set isLooping, isAnimating; the animation loop will handle swing
-                        // For jump/wave/backflip, we need to set isAnimating true and let the loop handle it
-                        // We already set isAnimating for those types above.
-
-                    } else {
-                        // Normal (non-kata) command
-                        if (currentCommand === 'idle') {
-                            // do nothing
-                            isAnimating = false;
-                            isLooping = false;
+            // Update logic
+            function update(dt) {{
+                if (kataRunning && !kataComplete) {{
+                    if (kataAction === null) {{
+                        if (kataIdx < KATA_SEQ.length) {{
+                            kataAction = KATA_SEQ[kataIdx];
+                            kataTimer = 0;
+                            const type = kataAction[0];
+                            if (type === 'walk' || type === 'run') {{
+                                cmd = type; looping = true; animating = true; bowActive = false;
+                            }} else if (type === 'idle') {{
+                                cmd = 'idle'; looping = false; animating = false; bowActive = false;
+                            }} else if (type === 'bow') {{
+                                cmd = 'bow'; looping = false; animating = false; bowActive = true; bowProgress = 0;
+                            }} else {{
+                                cmd = type; looping = false; animating = true; bowActive = false;
+                            }}
+                        }} else {{
+                            kataComplete = true;
+                            kataRunning = false;
+                            cmd = 'idle';
+                            animating = false;
+                            looping = false;
                             bowActive = false;
                             return;
-                        }
+                        }}
+                    }}
+                    kataTimer += dt;
+                    const dur = kataAction[1];
+                    if (kataTimer >= dur) {{
+                        kataIdx++;
+                        kataAction = null;
+                        animating = false;
+                        looping = false;
+                        bowActive = false;
+                        return;
+                    }}
+                    if (cmd === 'bow') bowProgress = Math.min(kataTimer / dur, 1.0);
+                    return;
+                }}
 
-                        if (isLooping) {
-                            // walk or run: just keep updating walkCycle
-                            walkCycle += delta * (currentCommand === 'walk' ? 2.0 : 3.0);
-                            return;
-                        }
+                // Non‑kata mode
+                if (cmd === 'idle') {{
+                    animating = false; looping = false; bowActive = false;
+                    return;
+                }}
+                if (looping) {{
+                    walkCycle += dt * (cmd === 'walk' ? 2.2 : 3.6);
+                    return;
+                }}
+                if (animating) {{
+                    animTimer += dt;
+                    let dur = 1.2;
+                    if (cmd === 'jump') dur = 1.2;
+                    else if (cmd === 'wave') dur = 2.0;
+                    else if (cmd === 'backflip') dur = 1.5;
+                    else if (cmd === 'bow') dur = 2.0;
+                    if (animTimer >= dur) {{
+                        animating = false;
+                        cmd = 'idle';
+                        animTimer = 0;
+                        bowActive = false;
+                    }}
+                }}
+            }}
 
-                        if (isAnimating) {
-                            // non-looping animation (jump, wave, backflip)
-                            animTimer += delta;
-                            let duration = 1.2;
-                            if (currentCommand === 'jump') duration = 1.2;
-                            else if (currentCommand === 'wave') duration = 2.0;
-                            else if (currentCommand === 'backflip') duration = 1.5;
-                            if (animTimer >= duration) {
-                                // animation finished
-                                isAnimating = false;
-                                currentCommand = 'idle';
-                                animTimer = 0;
-                            }
-                        }
-                    }
-                }
+            // Main loop
+            let prevTime = performance.now();
 
-                // ---- Main draw loop ----
-                let prevTime = performance.now();
+            function draw(time) {{
+                const dt = Math.min((time - prevTime) / 1000, 0.05);
+                prevTime = time;
+                update(dt);
 
-                function draw(time) {
-                    const delta = Math.min((time - prevTime) / 1000, 0.05);
-                    prevTime = time;
+                ctx.clearRect(0, 0, W, H);
 
-                    update(delta);
+                // Grid
+                ctx.strokeStyle = '#1a2a3a';
+                ctx.lineWidth = 1;
+                for (let i = 0; i < W; i += 50) {{
+                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
+                }}
+                for (let i = 0; i < H; i += 50) {{
+                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(W, i); ctx.stroke();
+                }}
 
-                    // Clear
-                    ctx.clearRect(0, 0, width, height);
+                // Transform calculations
+                let swing = 0;
+                if (cmd === 'walk' || cmd === 'run') swing = Math.sin(walkCycle) * 0.5;
 
-                    // Background grid
-                    ctx.strokeStyle = '#223344';
-                    ctx.lineWidth = 1;
-                    for (let i = 0; i < width; i += 50) {
-                        ctx.beginPath();
-                        ctx.moveTo(i, 0);
-                        ctx.lineTo(i, height);
-                        ctx.stroke();
-                    }
-                    for (let i = 0; i < height; i += 50) {
-                        ctx.beginPath();
-                        ctx.moveTo(0, i);
-                        ctx.lineTo(width, i);
-                        ctx.stroke();
-                    }
+                let yOff = 0;
+                let rot = 0;
+                let waveArm = undefined;
 
-                    // Compute swing for walk/run
-                    let swing = 0;
-                    if (currentCommand === 'walk' || currentCommand === 'run') {
-                        swing = Math.sin(walkCycle) * 0.5;
-                    }
+                // Jump
+                if (cmd === 'jump' && animating) {{
+                    const dur = 1.2;
+                    const t = Math.min(animTimer / dur, 1);
+                    yOff = -70 * 4 * t * (1 - t);
+                }}
+                // Backflip
+                if (cmd === 'backflip' && animating) {{
+                    const dur = 1.5;
+                    const t = Math.min(animTimer / dur, 1);
+                    rot = t * 2 * Math.PI;
+                }}
+                // Wave arm
+                if (cmd === 'wave' && animating) {{
+                    waveArm = -1.0 + Math.sin(animTimer * 6) * 0.35;
+                }}
+                // Bow
+                let bowAngle = 0;
+                if (cmd === 'bow' && (bowActive || animating)) {{
+                    const prog = bowActive ? bowProgress : Math.min(animTimer / 2.0, 1);
+                    const ease = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
+                    bowAngle = ease * 0.45;
+                    rot = bowAngle;
+                }}
 
-                    // Apply bow effect (rotate entire robot)
-                    let bowAngle = 0;
-                    if (bowActive) {
-                        const ease = bowProgress < 0.5 ? 2*bowProgress*bowProgress : 1 - Math.pow(-2*bowProgress+2, 2)/2;
-                        bowAngle = ease * 0.4;
-                    }
+                drawRobot(swing, yOff, rot, waveArm);
 
-                    // Draw robot with bow rotation if needed
-                    ctx.save();
-                    if (bowAngle !== 0) {
-                        ctx.rotate(bowAngle);
-                    }
-                    drawRobot(swing);
-                    ctx.restore();
+                // Overlay text
+                ctx.fillStyle = '#8899bb';
+                ctx.font = '15px Arial';
+                ctx.fillText('Command: ' + cmd, 18, 28);
+                if (kataRunning && KATA_SEQ.length > 0) {{
+                    ctx.fillStyle = '#00d4ff';
+                    ctx.font = '14px Arial';
+                    const pct = Math.round((kataIdx / KATA_SEQ.length) * 100);
+                    ctx.fillText('Kata progress: ' + pct + '%', 18, 52);
+                }}
 
-                    // Draw command text
-                    ctx.fillStyle = '#8899bb';
-                    ctx.font = '18px Arial';
-                    ctx.fillText('Command: ' + currentCommand, 20, 30);
+                requestAnimationFrame(draw);
+            }}
 
-                    // Draw kata progress
-                    if (kataRunning && kataSequence.length > 0) {
-                        ctx.fillStyle = '#00d4ff';
-                        ctx.font = '16px Arial';
-                        const progress = Math.round((kataIndex / kataSequence.length) * 100);
-                        ctx.fillText('Kata progress: ' + progress + '%', 20, 60);
-                    }
+            // Initialization
+            function init() {{
+                cmd = INIT_CMD;
+                if (KATA_SEQ.length > 0) {{
+                    kataRunning = true;
+                    kataIdx = 0;
+                    kataTimer = 0;
+                    kataComplete = false;
+                    kataAction = null;
+                }} else {{
+                    if (VALID_CMDS.includes(cmd)) {{
+                        if (cmd === 'walk' || cmd === 'run') {{
+                            looping = true;
+                            animating = true;
+                            walkCycle = 0;
+                        }} else if (cmd === 'bow') {{
+                            looping = false;
+                            animating = true;
+                            bowActive = true;
+                            bowProgress = 0;
+                            animTimer = 0;
+                        }} else {{
+                            looping = false;
+                            animating = true;
+                            animTimer = 0;
+                        }}
+                    }} else {{
+                        cmd = 'idle';
+                        looping = false;
+                        animating = false;
+                    }}
+                }}
+                requestAnimationFrame(draw);
+            }}
 
-                    requestAnimationFrame(draw);
-                }
-
-                // ---- Initialization ----
-                function init() {
-                    // Set initial command
-                    currentCommand = initialCommand;
-
-                    // If kata sequence provided, start kata mode
-                    if (kataSequence.length > 0) {
-                        kataRunning = true;
-                        kataIndex = 0;
-                        kataTimer = 0;
-                        kataComplete = false;
-                        kataAction = null; // will be loaded in first update
-                    } else {
-                        // Single command
-                        if (validCommands.includes(currentCommand)) {
-                            if (currentCommand === 'walk' || currentCommand === 'run') {
-                                isLooping = true;
-                                isAnimating = true;
-                                walkCycle = 0;
-                            } else {
-                                isLooping = false;
-                                isAnimating = true;
-                                animTimer = 0;
-                            }
-                        } else {
-                            currentCommand = 'idle';
-                            isLooping = false;
-                            isAnimating = false;
-                        }
-                    }
-
-                    // Start animation loop
-                    requestAnimationFrame(draw);
-                }
-
-                setTimeout(init, 100);
-            })();
+            setTimeout(init, 80);
+        }})();
         </script>
     </body>
     </html>
     """
-
-    # Replace placeholders
-    html = html_template.replace('ROBOT_NAME', robot_name)
-    html = html.replace('COMMAND', command if command else 'Idle')
-    html = html.replace('MAIN_COLOR', main_color)
-    html = html.replace('ACCENT_COLOR', f'rgb({accent_rgb[0]},{accent_rgb[1]},{accent_rgb[2]})')
-    html = html.replace('KIMONO_COLOR', kimono_color)
-    html = html.replace('BELT_COLOR', belt_color)
-    html = html.replace('HEADBAND_COLOR', headband_color)
-    html = html.replace('IS_KATA', 'true' if is_kata else 'false')
-    html = html.replace('ANIM_CMD', anim_cmd)
-    html = html.replace('KATA_SEQUENCE', kata_sequence_json)
-    # Replace validCommands placeholder
-    html = html.replace('const validCommands = [];', f'const validCommands = {json.dumps(valid_commands)};')
-
     return html
 
-# ========== SESSION STATE ==========
-if 'robot_selected' not in st.session_state: st.session_state.robot_selected = "Red Titan"
-if 'command' not in st.session_state: st.session_state.command = ""
-if 'speak_text' not in st.session_state: st.session_state.speak_text = ""
-if 'last_action' not in st.session_state: st.session_state.last_action = "idle"
-if 'history' not in st.session_state: st.session_state.history = []
-if 'last_spoken_text' not in st.session_state: st.session_state.last_spoken_text = ""
-if 'last_spoken_audio' not in st.session_state: st.session_state.last_spoken_audio = None
-if 'last_spoken_timestamp' not in st.session_state: st.session_state.last_spoken_timestamp = 0
-if 'kata' not in st.session_state: st.session_state.kata = None
+# ---- Session state ----
+if 'robot_selected' not in st.session_state:
+    st.session_state.robot_selected = "Red Titan"
+if 'command' not in st.session_state:
+    st.session_state.command = ""
+if 'speak_text' not in st.session_state:
+    st.session_state.speak_text = ""
+if 'last_action' not in st.session_state:
+    st.session_state.last_action = "idle"
+if 'history' not in st.session_state:
+    st.session_state.history = []
+if 'last_spoken_text' not in st.session_state:
+    st.session_state.last_spoken_text = ""
+if 'last_spoken_audio' not in st.session_state:
+    st.session_state.last_spoken_audio = None
+if 'last_spoken_timestamp' not in st.session_state:
+    st.session_state.last_spoken_timestamp = 0
+if 'kata' not in st.session_state:
+    st.session_state.kata = None
 
 # ========== HEADER ==========
 st.markdown("""
@@ -600,18 +537,20 @@ with st.sidebar:
         <p class="profile-title">Engineer-in-Chief, GlobalInternet.py</p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    
+
     st.markdown("### 🤖 Robot Selection")
     robot_names = list(ROBOTS.keys())
-    selected = st.selectbox("Select Robot", options=robot_names, index=robot_names.index(st.session_state.robot_selected), key="robot_select")
+    selected = st.selectbox("Select Robot", options=robot_names,
+                            index=robot_names.index(st.session_state.robot_selected),
+                            key="robot_select")
     if selected != st.session_state.robot_selected:
         st.session_state.robot_selected = selected
         st.session_state.last_action = "idle"
         st.session_state.kata = None
         st.rerun()
-    
+
     robot_info = ROBOTS[st.session_state.robot_selected]
     st.markdown(f"""
     <div class="robot-card">
@@ -619,13 +558,14 @@ with st.sidebar:
         <div class="robot-type">{robot_info['description']}</div>
     </div>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    
+
     st.markdown("### 🥋 Kata Performance")
     kata_names = list(KATAS.keys())
-    kata_selected = st.selectbox("Select Kata", options=["None"] + kata_names, 
-                                 index=0 if st.session_state.kata is None else kata_names.index(st.session_state.kata) + 1, key="kata_select")
+    kata_selected = st.selectbox("Select Kata", options=["None"] + kata_names,
+                                 index=0 if st.session_state.kata is None else kata_names.index(st.session_state.kata) + 1,
+                                 key="kata_select")
     if kata_selected == "None":
         if st.session_state.kata is not None:
             st.session_state.kata = None
@@ -636,7 +576,7 @@ with st.sidebar:
             st.session_state.kata = kata_selected
             st.session_state.command = ""
             st.rerun()
-    
+
     if st.session_state.kata:
         kata_info = KATAS[st.session_state.kata]
         st.markdown(f"""
@@ -646,12 +586,13 @@ with st.sidebar:
             <span style="color: #8899bb; font-size: 0.8rem;">Belt: {kata_info['belt_rank']}</span>
         </div>
         """, unsafe_allow_html=True)
-    
+
     st.markdown("---")
-    
+
     st.markdown("### 🎮 Commands")
-    st.markdown("*Walk and Run loop continuously. Jump, Wave, Backflip play once.*")
-    action_input = st.text_input("Action (e.g., walk, run, jump, wave, backflip)", key="action_input", placeholder="e.g., backflip")
+    st.markdown("*Walk and Run loop continuously. Jump, Wave, Backflip, Bow play once.*")
+    action_input = st.text_input("Action (e.g., walk, run, jump, wave, backflip, bow)", key="action_input",
+                                 placeholder="e.g., backflip")
     if st.button("▶️ Execute Action", use_container_width=True):
         if action_input.strip():
             st.session_state.kata = None
@@ -660,7 +601,7 @@ with st.sidebar:
             st.rerun()
         else:
             st.warning("Please enter an action.")
-    
+
     st.markdown("---")
     st.markdown("### 🗣️ Speech")
     speak_input = st.text_input("Speak (text)", key="speak_input", placeholder="e.g., Hello, I am your robot.")
@@ -674,10 +615,10 @@ with st.sidebar:
                 st.session_state.last_spoken_timestamp = time.time()
                 st.rerun()
             else:
-                st.error("❌ Speech generation failed.")
+                st.error("❌ Speech generation failed. Please ensure gTTS is installed.")
         else:
             st.warning("Please enter text to speak.")
-    
+
     st.markdown("---")
     st.markdown("### 📞 Contact")
     st.markdown("""
@@ -687,12 +628,13 @@ with st.sidebar:
         <strong style="color: #00d4ff;">Website:</strong> <a href="https://globalinternetsitepy-abh7v6tnmskxxnuplrdcgk.streamlit.app/" style="color: #00d4ff;" target="_blank">globalinternet-py.com</a>
     </div>
     """, unsafe_allow_html=True)
-    
+
     st.markdown("---")
     st.markdown("### 🔧 Status")
     st.markdown(f"**Current Robot:** {st.session_state.robot_selected}")
     st.markdown(f"**Last Action:** {st.session_state.last_action}")
-    if st.session_state.kata: st.markdown(f"**Kata:** {st.session_state.kata}")
+    if st.session_state.kata:
+        st.markdown(f"**Kata:** {st.session_state.kata}")
 
 # ========== MAIN CONTENT ==========
 col_view, col_info = st.columns([3, 1])
@@ -704,10 +646,9 @@ with col_view:
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
-    
-    # Encode as data URI and use st.iframe
+    # Encode as data URI
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    st.iframe(data_uri, height=650)
+    st.iframe(data_uri, height=650, width=None)
 
 with col_info:
     st.markdown(f"""
@@ -716,14 +657,14 @@ with col_info:
         <div class="value">{st.session_state.robot_selected}</div>
     </div>
     """, unsafe_allow_html=True)
-    
+
     st.markdown(f"""
     <div class="status-panel">
         <div class="label">Last Action</div>
         <div class="value">{st.session_state.last_action if st.session_state.last_action != "idle" else "—"}</div>
     </div>
     """, unsafe_allow_html=True)
-    
+
     if st.session_state.kata:
         st.markdown(f"""
         <div class="status-panel" style="border-color: #ffaa00;">
@@ -731,12 +672,13 @@ with col_info:
             <div class="value" style="color: #ffaa00;">{st.session_state.kata}</div>
         </div>
         """, unsafe_allow_html=True)
-    
+
     if st.session_state.last_spoken_audio and st.session_state.last_spoken_timestamp > 0:
         st.audio(st.session_state.last_spoken_audio, format="audio/mp3", autoplay=True)
         st.caption(f"🔊 Speaking: {st.session_state.last_spoken_text[:50]}...")
-        if st.button("🔁 Replay Voice"): st.rerun()
-    
+        if st.button("🔁 Replay Voice"):
+            st.rerun()
+
     with st.expander("📜 Backstage – Command History", expanded=False):
         if st.session_state.history:
             for cmd, status in reversed(st.session_state.history[-10:]):
@@ -749,7 +691,7 @@ with col_info:
         else:
             st.info("No commands yet. Send a command from the sidebar.")
 
-# ---------- Speak ----------
+# ---------- Speak history ----------
 if st.session_state.last_spoken_text and st.session_state.last_spoken_audio:
     if not any("Speak:" in h[0] and st.session_state.last_spoken_text in h[0] for h in st.session_state.history):
         st.session_state.history.append((f"Speak: {st.session_state.last_spoken_text}", "Speech played"))
