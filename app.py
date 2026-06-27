@@ -129,7 +129,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- Viewer HTML generator (with cache-busting and fixed backflip) ----
+# ---- 3D Viewer HTML generator (Three.js) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     # Colors
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -164,339 +164,378 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Cache-buster: add a unique comment so the iframe reloads on each command
+    # Cache-buster
     import time as _time
     cache_buster = f"<!-- {_time.time()} -->"
 
-    # Build HTML with embedded JS
+    # Build HTML with Three.js embedded
     html = f"""
     <!DOCTYPE html>
     <html>
     <head>
         <meta charset="utf-8">
         <style>
-            body {{ margin: 0; background: #0a0a0f; display: flex; justify-content: center; align-items: center; height: 100vh; overflow: hidden; }}
-            canvas {{ display: block; background: #0a0a0f; }}
+            body {{ margin: 0; overflow: hidden; background: #0a0a0f; }}
+            canvas {{ display: block; }}
             #info {{ position: absolute; bottom: 20px; left: 20px; color: #8899bb; font-size: 14px; pointer-events: none; z-index: 10; }}
         </style>
     </head>
     <body>
         {cache_buster}
-        <canvas id="c"></canvas>
         <div id="info">🤖 {robot_name} | Command: {command if command else 'Idle'}</div>
-        <script>
-        (function() {{
-            const canvas = document.getElementById('c');
-            const ctx = canvas.getContext('2d');
-            let W, H;
-            function resize() {{ W = window.innerWidth; H = window.innerHeight; canvas.width = W; canvas.height = H; }}
-            window.addEventListener('resize', resize);
-            resize();
-
-            // Constants
-            const MAIN = '{main_color}';
-            const ACCENT = '{accent_color}';
-            const KIMONO = '{kimono_color}';
-            const BELT = '{belt_color}';
-            const HEADBAND = '{headband_color}';
-            const IS_KATA = {str(is_kata).lower()};
-            const KATA_SEQ = {kata_sequence_json};
-            const INIT_CMD = '{anim_cmd}';
-            const VALID_CMDS = {json.dumps(valid_commands)};
-
-            // Robot dimensions
-            const HS = 40, TH = 80, TW = 60, AL = 60, LL = 70;
-
-            // State
-            let cmd = 'idle';
-            let looping = false;
-            let animating = false;
-            let animTimer = 0;
-            let walkCycle = 0;
-            let bowActive = false;
-            let bowProgress = 0;
-
-            // Kata state
-            let kataRunning = false;
-            let kataIdx = 0;
-            let kataTimer = 0;
-            let kataComplete = false;
-            let kataAction = null;
-
-            // Drawing functions
-            function drawRobot(swing, yOff, rot, waveArm) {{
-                ctx.save();
-                ctx.translate(W/2, H/2 + 30 + (yOff || 0));
-                if (rot) ctx.rotate(rot);
-
-                // Torso
-                ctx.fillStyle = KIMONO;
-                ctx.shadowColor = 'rgba(0,0,0,0.4)';
-                ctx.shadowBlur = 12;
-                ctx.fillRect(-TW/2, -TH/2, TW, TH);
-                ctx.shadowBlur = 0;
-
-                // Belt
-                ctx.fillStyle = BELT;
-                ctx.fillRect(-TW/2+5, TH/2-8, TW-10, 10);
-
-                // Chest
-                ctx.fillStyle = ACCENT;
-                ctx.fillRect(-15, -TH/2+10, 30, 15);
-
-                // Head
-                ctx.save();
-                ctx.translate(0, -TH/2 - HS/2 + 5);
-                ctx.fillStyle = '#aaaaaa';
-                ctx.fillRect(-HS/2, -HS/2, HS, HS);
-                ctx.fillStyle = '#00ddff';
-                ctx.shadowColor = '#00bbff';
-                ctx.shadowBlur = 18;
-                ctx.fillRect(-HS/3, -HS/6, HS*2/3, HS/4);
-                ctx.shadowBlur = 0;
-                // Antenna
-                ctx.fillStyle = '#ffaa00';
-                ctx.fillRect(-3, -HS/2-14, 6, 14);
-                ctx.beginPath();
-                ctx.arc(0, -HS/2-14, 5, 0, 2*Math.PI);
-                ctx.fill();
-                if (IS_KATA) {{
-                    ctx.strokeStyle = HEADBAND;
-                    ctx.lineWidth = 5;
-                    ctx.beginPath();
-                    ctx.arc(0, 0, HS/2+2, 0, 2*Math.PI);
-                    ctx.stroke();
-                }}
-                ctx.restore();
-
-                // Arms
-                const sx = TW/2 + 5, sy = -TH/2 + 10;
-                // Left arm
-                ctx.save();
-                ctx.translate(-sx, sy);
-                let ls = 0;
-                if (cmd === 'walk' || cmd === 'run') ls = -swing * 0.5;
-                ctx.rotate(ls);
-                ctx.fillStyle = KIMONO;
-                ctx.fillRect(-8, 0, 16, AL);
-                ctx.fillStyle = '#cccccc';
-                ctx.fillRect(-6, AL-5, 12, 12);
-                ctx.restore();
-
-                // Right arm
-                ctx.save();
-                ctx.translate(sx, sy);
-                let rs = 0;
-                if (cmd === 'walk' || cmd === 'run') rs = swing * 0.5;
-                else if (cmd === 'wave') rs = waveArm !== undefined ? waveArm : (-1.2 + Math.sin(Date.now()/200)*0.5);
-                else if (cmd === 'jump') rs = -0.2;
-                ctx.rotate(rs);
-                ctx.fillStyle = KIMONO;
-                ctx.fillRect(-8, 0, 16, AL);
-                ctx.fillStyle = '#cccccc';
-                ctx.fillRect(-6, AL-5, 12, 12);
-                ctx.restore();
-
-                // Legs
-                const hy = TH/2 - 5, lw = 12;
-                ctx.save();
-                ctx.translate(-TW/4, hy);
-                let lls = 0;
-                if (cmd === 'walk' || cmd === 'run') lls = -swing * 0.5;
-                ctx.rotate(lls);
-                ctx.fillStyle = KIMONO;
-                ctx.fillRect(-lw/2, 0, lw, LL);
-                ctx.fillStyle = '#333';
-                ctx.fillRect(-lw/2-3, LL-5, lw+6, 8);
-                ctx.restore();
-
-                ctx.save();
-                ctx.translate(TW/4, hy);
-                let rls = 0;
-                if (cmd === 'walk' || cmd === 'run') rls = swing * 0.5;
-                ctx.rotate(rls);
-                ctx.fillStyle = KIMONO;
-                ctx.fillRect(-lw/2, 0, lw, LL);
-                ctx.fillStyle = '#333';
-                ctx.fillRect(-lw/2-3, LL-5, lw+6, 8);
-                ctx.restore();
-
-                ctx.restore();
+        <script type="importmap">
+        {{
+            "imports": {{
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js"
             }}
+        }}
+        </script>
+        <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
-            // Update logic
-            function update(dt) {{
-                if (kataRunning && !kataComplete) {{
-                    if (kataAction === null) {{
-                        if (kataIdx < KATA_SEQ.length) {{
-                            kataAction = KATA_SEQ[kataIdx];
-                            kataTimer = 0;
-                            const type = kataAction[0];
-                            if (type === 'walk' || type === 'run') {{
-                                cmd = type; looping = true; animating = true; bowActive = false;
-                            }} else if (type === 'idle') {{
-                                cmd = 'idle'; looping = false; animating = false; bowActive = false;
-                            }} else if (type === 'bow') {{
-                                cmd = 'bow'; looping = false; animating = false; bowActive = true; bowProgress = 0;
-                            }} else {{
-                                cmd = type; looping = false; animating = true; bowActive = false;
-                            }}
+        // ---- Setup scene ----
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a0a0f);
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(4, 3, 6);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.body.appendChild(renderer.domElement);
+
+        // ---- Controls (optional, but lets user orbit) ----
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.target.set(0, 1, 0);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.update();
+
+        // ---- Lights ----
+        const ambient = new THREE.AmbientLight(0x404060);
+        scene.add(ambient);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 1.2);
+        dirLight.position.set(5, 10, 7);
+        dirLight.castShadow = true;
+        scene.add(dirLight);
+
+        const fillLight = new THREE.DirectionalLight(0x88aaff, 0.3);
+        fillLight.position.set(-3, 2, 4);
+        scene.add(fillLight);
+
+        // ---- Ground grid ----
+        const gridHelper = new THREE.GridHelper(10, 20, 0x336688, 0x224466);
+        gridHelper.position.y = -0.5;
+        scene.add(gridHelper);
+
+        // ---- Robot construction ----
+        const robotGroup = new THREE.Group();
+        robotGroup.position.y = 0.5;
+
+        // Materials
+        const mainMat = new THREE.MeshStandardMaterial({{ color: '{main_color}', roughness: 0.5, metalness: 0.3 }});
+        const accentMat = new THREE.MeshStandardMaterial({{ color: '{accent_color}', roughness: 0.4, metalness: 0.2 }});
+        const kimonoMat = new THREE.MeshStandardMaterial({{ color: '{kimono_color}', roughness: 0.6 }});
+        const beltMat = new THREE.MeshStandardMaterial({{ color: '{belt_color}', roughness: 0.7 }});
+        const headMat = new THREE.MeshStandardMaterial({{ color: '#aaaaaa', roughness: 0.4 }});
+        const visorMat = new THREE.MeshStandardMaterial({{ color: '#00ddff', emissive: '#0066aa', emissiveIntensity: 0.3 }});
+        const antennaMat = new THREE.MeshStandardMaterial({{ color: '#ffaa00', emissive: '#ff8800', emissiveIntensity: 0.2 }});
+        const headbandMat = new THREE.MeshStandardMaterial({{ color: '{headband_color}', roughness: 0.3 }});
+        const jointMat = new THREE.MeshStandardMaterial({{ color: '#888888', roughness: 0.6 }});
+
+        // Torso
+        const torsoGeo = new THREE.BoxGeometry(0.8, 1.0, 0.5);
+        const torso = new THREE.Mesh(torsoGeo, kimonoMat);
+        torso.position.y = 0.5;
+        torso.castShadow = true;
+        robotGroup.add(torso);
+
+        // Belt (stripe)
+        const beltGeo = new THREE.BoxGeometry(0.7, 0.1, 0.45);
+        const belt = new THREE.Mesh(beltGeo, beltMat);
+        belt.position.set(0, 0.05, 0);
+        torso.add(belt);
+
+        // Chest accent
+        const chestGeo = new THREE.BoxGeometry(0.4, 0.2, 0.1);
+        const chest = new THREE.Mesh(chestGeo, accentMat);
+        chest.position.set(0, 0.15, 0.3);
+        torso.add(chest);
+
+        // Head
+        const headGroup = new THREE.Group();
+        headGroup.position.set(0, 1.0, 0);
+        torso.add(headGroup);
+
+        const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.castShadow = true;
+        headGroup.add(head);
+
+        // Visor
+        const visorGeo = new THREE.BoxGeometry(0.35, 0.12, 0.05);
+        const visor = new THREE.Mesh(visorGeo, visorMat);
+        visor.position.set(0, 0, 0.28);
+        head.add(visor);
+
+        // Antenna
+        const antGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.2);
+        const ant = new THREE.Mesh(antGeo, antennaMat);
+        ant.position.set(0, 0.35, 0);
+        head.add(ant);
+        const antBall = new THREE.SphereGeometry(0.06);
+        const ball = new THREE.Mesh(antBall, antennaMat);
+        ball.position.set(0, 0.45, 0);
+        head.add(ball);
+
+        // Headband (kata)
+        if ({str(is_kata).lower()}) {{
+            const bandGeo = new THREE.TorusGeometry(0.3, 0.03, 8, 20);
+            const band = new THREE.Mesh(bandGeo, headbandMat);
+            band.rotation.x = Math.PI/2;
+            band.position.y = 0.0;
+            head.add(band);
+        }}
+
+        // Left arm
+        const leftArmGroup = new THREE.Group();
+        leftArmGroup.position.set(-0.55, 0.8, 0);
+        torso.add(leftArmGroup);
+
+        const armGeo = new THREE.BoxGeometry(0.2, 0.7, 0.2);
+        const leftArm = new THREE.Mesh(armGeo, kimonoMat);
+        leftArm.position.y = -0.35;
+        leftArm.castShadow = true;
+        leftArmGroup.add(leftArm);
+
+        // Right arm
+        const rightArmGroup = new THREE.Group();
+        rightArmGroup.position.set(0.55, 0.8, 0);
+        torso.add(rightArmGroup);
+
+        const rightArm = new THREE.Mesh(armGeo, kimonoMat);
+        rightArm.position.y = -0.35;
+        rightArm.castShadow = true;
+        rightArmGroup.add(rightArm);
+
+        // Left leg
+        const leftLegGroup = new THREE.Group();
+        leftLegGroup.position.set(-0.25, -0.45, 0);
+        torso.add(leftLegGroup);
+
+        const legGeo = new THREE.BoxGeometry(0.25, 0.7, 0.25);
+        const leftLeg = new THREE.Mesh(legGeo, kimonoMat);
+        leftLeg.position.y = -0.35;
+        leftLeg.castShadow = true;
+        leftLegGroup.add(leftLeg);
+
+        // Right leg
+        const rightLegGroup = new THREE.Group();
+        rightLegGroup.position.set(0.25, -0.45, 0);
+        torso.add(rightLegGroup);
+
+        const rightLeg = new THREE.Mesh(legGeo, kimonoMat);
+        rightLeg.position.y = -0.35;
+        rightLeg.castShadow = true;
+        rightLegGroup.add(rightLeg);
+
+        scene.add(robotGroup);
+
+        // ---- Animation state ----
+        const state = {{
+            cmd: 'idle',
+            looping: false,
+            animating: false,
+            animTimer: 0,
+            walkCycle: 0,
+            bowActive: false,
+            bowProgress: 0,
+            kataRunning: false,
+            kataIdx: 0,
+            kataTimer: 0,
+            kataComplete: false,
+            kataAction: null,
+            kataSeq: {kata_sequence_json},
+            initCmd: '{anim_cmd}',
+            validCmds: {json.dumps(valid_commands)},
+        }};
+
+        // ---- Update function ----
+        function update(dt) {{
+            // Kata logic
+            if (state.kataRunning && !state.kataComplete) {{
+                if (state.kataAction === null) {{
+                    if (state.kataIdx < state.kataSeq.length) {{
+                        state.kataAction = state.kataSeq[state.kataIdx];
+                        state.kataTimer = 0;
+                        const type = state.kataAction[0];
+                        if (type === 'walk' || type === 'run') {{
+                            state.cmd = type; state.looping = true; state.animating = true; state.bowActive = false;
+                        }} else if (type === 'idle') {{
+                            state.cmd = 'idle'; state.looping = false; state.animating = false; state.bowActive = false;
+                        }} else if (type === 'bow') {{
+                            state.cmd = 'bow'; state.looping = false; state.animating = false; state.bowActive = true; state.bowProgress = 0;
                         }} else {{
-                            kataComplete = true;
-                            kataRunning = false;
-                            cmd = 'idle';
-                            animating = false;
-                            looping = false;
-                            bowActive = false;
-                            return;
-                        }}
-                    }}
-                    kataTimer += dt;
-                    const dur = kataAction[1];
-                    if (kataTimer >= dur) {{
-                        kataIdx++;
-                        kataAction = null;
-                        animating = false;
-                        looping = false;
-                        bowActive = false;
-                        return;
-                    }}
-                    if (cmd === 'bow') bowProgress = Math.min(kataTimer / dur, 1.0);
-                    return;
-                }}
-
-                // Non‑kata mode
-                if (cmd === 'idle') {{
-                    animating = false; looping = false; bowActive = false;
-                    return;
-                }}
-                if (looping) {{
-                    walkCycle += dt * (cmd === 'walk' ? 2.2 : 3.6);
-                    return;
-                }}
-                if (animating) {{
-                    animTimer += dt;
-                    let dur = 1.2;
-                    if (cmd === 'jump') dur = 1.2;
-                    else if (cmd === 'wave') dur = 2.0;
-                    else if (cmd === 'backflip') dur = 1.5;
-                    else if (cmd === 'bow') dur = 2.0;
-                    if (animTimer >= dur) {{
-                        animating = false;
-                        cmd = 'idle';
-                        animTimer = 0;
-                        bowActive = false;
-                    }}
-                }}
-            }}
-
-            // Main loop
-            let prevTime = performance.now();
-
-            function draw(time) {{
-                const dt = Math.min((time - prevTime) / 1000, 0.05);
-                prevTime = time;
-                update(dt);
-
-                ctx.clearRect(0, 0, W, H);
-
-                // Grid
-                ctx.strokeStyle = '#1a2a3a';
-                ctx.lineWidth = 1;
-                for (let i = 0; i < W; i += 50) {{
-                    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, H); ctx.stroke();
-                }}
-                for (let i = 0; i < H; i += 50) {{
-                    ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(W, i); ctx.stroke();
-                }}
-
-                // Transform calculations
-                let swing = 0;
-                if (cmd === 'walk' || cmd === 'run') swing = Math.sin(walkCycle) * 0.5;
-
-                let yOff = 0;
-                let rot = 0;
-                let waveArm = undefined;
-
-                // Jump (and backflip also gets a jump)
-                if ((cmd === 'jump' || cmd === 'backflip') && animating) {{
-                    const dur = (cmd === 'jump') ? 1.2 : 1.5;
-                    const t = Math.min(animTimer / dur, 1);
-                    // parabolic jump
-                    yOff = -70 * 4 * t * (1 - t);
-                }}
-                // Backflip rotation (full somersault)
-                if (cmd === 'backflip' && animating) {{
-                    const dur = 1.5;
-                    const t = Math.min(animTimer / dur, 1);
-                    rot = t * 2 * Math.PI;  // full 360° rotation
-                }}
-                // Wave arm
-                if (cmd === 'wave' && animating) {{
-                    waveArm = -1.0 + Math.sin(animTimer * 6) * 0.35;
-                }}
-                // Bow
-                let bowAngle = 0;
-                if (cmd === 'bow' && (bowActive || animating)) {{
-                    const prog = bowActive ? bowProgress : Math.min(animTimer / 2.0, 1);
-                    const ease = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
-                    bowAngle = ease * 0.45;
-                    rot = bowAngle;
-                }}
-
-                drawRobot(swing, yOff, rot, waveArm);
-
-                // Overlay text
-                ctx.fillStyle = '#8899bb';
-                ctx.font = '15px Arial';
-                ctx.fillText('Command: ' + cmd, 18, 28);
-                if (kataRunning && KATA_SEQ.length > 0) {{
-                    ctx.fillStyle = '#00d4ff';
-                    ctx.font = '14px Arial';
-                    const pct = Math.round((kataIdx / KATA_SEQ.length) * 100);
-                    ctx.fillText('Kata progress: ' + pct + '%', 18, 52);
-                }}
-
-                requestAnimationFrame(draw);
-            }}
-
-            // Initialization
-            function init() {{
-                cmd = INIT_CMD;
-                if (KATA_SEQ.length > 0) {{
-                    kataRunning = true;
-                    kataIdx = 0;
-                    kataTimer = 0;
-                    kataComplete = false;
-                    kataAction = null;
-                }} else {{
-                    if (VALID_CMDS.includes(cmd)) {{
-                        if (cmd === 'walk' || cmd === 'run') {{
-                            looping = true;
-                            animating = true;
-                            walkCycle = 0;
-                        }} else if (cmd === 'bow') {{
-                            looping = false;
-                            animating = true;
-                            bowActive = true;
-                            bowProgress = 0;
-                            animTimer = 0;
-                        }} else {{
-                            looping = false;
-                            animating = true;
-                            animTimer = 0;
+                            state.cmd = type; state.looping = false; state.animating = true; state.bowActive = false;
                         }}
                     }} else {{
-                        cmd = 'idle';
-                        looping = false;
-                        animating = false;
+                        state.kataComplete = true;
+                        state.kataRunning = false;
+                        state.cmd = 'idle';
+                        state.animating = false;
+                        state.looping = false;
+                        state.bowActive = false;
+                        return;
                     }}
                 }}
-                requestAnimationFrame(draw);
+                state.kataTimer += dt;
+                const dur = state.kataAction[1];
+                if (state.kataTimer >= dur) {{
+                    state.kataIdx++;
+                    state.kataAction = null;
+                    state.animating = false;
+                    state.looping = false;
+                    state.bowActive = false;
+                    return;
+                }}
+                if (state.cmd === 'bow') state.bowProgress = Math.min(state.kataTimer / dur, 1.0);
+                return;
             }}
 
-            setTimeout(init, 80);
-        }})();
+            // Normal command
+            if (state.cmd === 'idle') {{
+                state.animating = false; state.looping = false; state.bowActive = false;
+                return;
+            }}
+            if (state.looping) {{
+                state.walkCycle += dt * (state.cmd === 'walk' ? 2.2 : 3.6);
+                return;
+            }}
+            if (state.animating) {{
+                state.animTimer += dt;
+                let dur = 1.2;
+                if (state.cmd === 'jump') dur = 1.2;
+                else if (state.cmd === 'wave') dur = 2.0;
+                else if (state.cmd === 'backflip') dur = 1.5;
+                else if (state.cmd === 'bow') dur = 2.0;
+                if (state.animTimer >= dur) {{
+                    state.animating = false;
+                    state.cmd = 'idle';
+                    state.animTimer = 0;
+                    state.bowActive = false;
+                }}
+            }}
+        }}
+
+        // ---- Apply animations to robot ----
+        function animateRobot() {{
+            const swing = (state.cmd === 'walk' || state.cmd === 'run') ? Math.sin(state.walkCycle) * 0.5 : 0;
+
+            // Reset rotations and positions (except for ongoing animations)
+            leftArmGroup.rotation.x = 0;
+            rightArmGroup.rotation.x = 0;
+            leftLegGroup.rotation.x = 0;
+            rightLegGroup.rotation.x = 0;
+            robotGroup.rotation.x = 0;
+            robotGroup.position.y = 0.5;
+
+            // Walk/Run
+            if (state.cmd === 'walk' || state.cmd === 'run') {{
+                leftArmGroup.rotation.x = -swing * 0.6;
+                rightArmGroup.rotation.x = swing * 0.6;
+                leftLegGroup.rotation.x = swing * 0.4;
+                rightLegGroup.rotation.x = -swing * 0.4;
+            }}
+
+            // Jump
+            if (state.cmd === 'jump' && state.animating) {{
+                const t = Math.min(state.animTimer / 1.2, 1);
+                const y = 1.5 * 4 * t * (1 - t);
+                robotGroup.position.y = 0.5 + y;
+            }}
+
+            // Backflip
+            if (state.cmd === 'backflip' && state.animating) {{
+                const t = Math.min(state.animTimer / 1.5, 1);
+                const y = 1.8 * 4 * t * (1 - t);
+                robotGroup.position.y = 0.5 + y;
+                robotGroup.rotation.x = t * 2 * Math.PI;
+            }}
+
+            // Wave
+            if (state.cmd === 'wave' && state.animating) {{
+                rightArmGroup.rotation.x = -0.8 + Math.sin(state.animTimer * 6) * 0.3;
+            }}
+
+            // Bow
+            if (state.cmd === 'bow' && (state.bowActive || state.animating)) {{
+                const prog = state.bowActive ? state.bowProgress : Math.min(state.animTimer / 2.0, 1);
+                const ease = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
+                torso.rotation.x = ease * 0.6;
+            }} else {{
+                torso.rotation.x = 0;
+            }}
+        }}
+
+        // ---- Animation loop ----
+        let prevTime = performance.now();
+
+        function animate(time) {{
+            const dt = Math.min((time - prevTime) / 1000, 0.05);
+            prevTime = time;
+
+            update(dt);
+            animateRobot();
+
+            controls.update();
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }}
+
+        // ---- Resize handler ----
+        window.addEventListener('resize', () => {{
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }});
+
+        // ---- Init ----
+        state.cmd = state.initCmd;
+        if (state.kataSeq.length > 0) {{
+            state.kataRunning = true;
+            state.kataIdx = 0;
+            state.kataTimer = 0;
+            state.kataComplete = false;
+            state.kataAction = null;
+        }} else {{
+            if (state.validCmds.includes(state.cmd)) {{
+                if (state.cmd === 'walk' || state.cmd === 'run') {{
+                    state.looping = true;
+                    state.animating = true;
+                    state.walkCycle = 0;
+                }} else if (state.cmd === 'bow') {{
+                    state.looping = false;
+                    state.animating = true;
+                    state.bowActive = true;
+                    state.bowProgress = 0;
+                    state.animTimer = 0;
+                }} else {{
+                    state.looping = false;
+                    state.animating = true;
+                    state.animTimer = 0;
+                }}
+            }} else {{
+                state.cmd = 'idle';
+                state.looping = false;
+                state.animating = false;
+            }}
+        }}
+
+        animate(performance.now());
         </script>
     </body>
     </html>
@@ -651,9 +690,7 @@ with col_view:
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
-    # Encode as data URI
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    # Use integer width to avoid validation error
     st.iframe(data_uri, height=650, width=700)
 
 with col_info:
