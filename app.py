@@ -769,11 +769,11 @@ with col_view:
         st.session_state.kata
     )
     
-    # ---- REPLACED st.components.v1.html with st.iframe using data URI ----
+    # ----- FIX: Use st.iframe without the 'scrolling' parameter to avoid TypeError -----
     html_bytes = viewer_html.encode('utf-8')
     b64 = base64.b64encode(html_bytes).decode('utf-8')
     data_uri = f"data:text/html;base64,{b64}"
-    st.iframe(src=data_uri, height=650, scrolling=True)
+    st.iframe(src=data_uri, height=650)   # <-- removed scrolling=True
 
 with col_info:
     st.markdown(f"""
