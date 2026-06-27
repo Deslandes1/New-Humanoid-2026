@@ -769,13 +769,15 @@ with col_view:
         st.session_state.kata
     )
     
-    # ---- Write HTML to static file and embed via iframe ----
+    # Write the HTML to a static file and embed it.
+    # This avoids the deprecated st.components.v1.html and the TypeError.
     STATIC_DIR = "static"
     os.makedirs(STATIC_DIR, exist_ok=True)
     viewer_path = os.path.join(STATIC_DIR, "viewer.html")
     with open(viewer_path, "w", encoding="utf-8") as f:
         f.write(viewer_html)
-    # No 'scrolling' parameter – this avoids the TypeError
+    
+    # The 'scrolling' argument is NOT used – it was causing the TypeError.
     st.iframe(src="/static/viewer.html", height=650)
 
 with col_info:
