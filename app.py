@@ -473,7 +473,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (ball appears during run) ----
+# ---- 3D Viewer HTML generator (ball appears during run, head juggling) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -870,7 +870,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         }})();
         // Ball positions
         const ballBasePos = new THREE.Vector3(0, -0.8, 0.5);   // ground
-        const ballHeadPos = new THREE.Vector3(0, 1.6, 0.5);    // head height
         soccerBall.position.copy(ballBasePos);
         robotGroup.add(soccerBall);
 
@@ -974,13 +973,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             if (state.cmd === 'run') {{
                 // Robot is running
                 if (state.soccerMode) {{
-                    // Soccer mode: ball bounces at head height
-                    const bounceHeight = 1.6 + Math.sin(state.walkCycle * 2) * 0.2; // between 1.4 and 1.8
+                    // Head juggling: bounce above head
+                    const bounceHeight = 1.7 + Math.sin(state.walkCycle * 2) * 0.25;
                     const swing = Math.sin(state.walkCycle * 0.5) * 0.1;
                     soccerBall.position.set(
-                        swing, // slight x movement
+                        swing,
                         bounceHeight,
-                        0.5 // z in front
+                        0.1 // slightly in front of head
                     );
                 }} else {{
                     // Normal run: ball on ground jiggles
