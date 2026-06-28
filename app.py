@@ -868,8 +868,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             soccerBall.material.map = tex;
             soccerBall.material.needsUpdate = true;
         }})();
-        // Ball on the ground: y = -0.8 relative to robotGroup (world y = -0.3)
-        const ballBasePos = new THREE.Vector3(0, -0.8, 0.5);
+        // Ball positions
+        const ballBasePos = new THREE.Vector3(0, -0.8, 0.5);   // ground
+        const ballHeadPos = new THREE.Vector3(0, 1.6, 0.5);    // head height
         soccerBall.position.copy(ballBasePos);
         robotGroup.add(soccerBall);
 
@@ -910,7 +911,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 progressBar.style.width = '100%';
             }} else {{
                 if (state.soccerMode && state.cmd === 'run') {{
-                    stepInfoEl.textContent = '⚽ Running with ball';
+                    stepInfoEl.textContent = '⚽ Head Juggling';
                     progressBar.style.width = '100%';
                 }} else if (state.cmd !== 'idle') {{
                     stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
@@ -971,13 +972,25 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             // ---- Ball logic (appears during run) ----
             // Update ball position based on current command
             if (state.cmd === 'run') {{
-                // Robot is running: ball jiggles
-                const swing = Math.sin(state.walkCycle) * 0.05;
-                soccerBall.position.set(
-                    ballBasePos.x + swing * 0.1,
-                    ballBasePos.y + Math.abs(Math.sin(state.walkCycle * 2)) * 0.02,
-                    ballBasePos.z + swing * 0.05
-                );
+                // Robot is running
+                if (state.soccerMode) {{
+                    // Soccer mode: ball bounces at head height
+                    const bounceHeight = 1.6 + Math.sin(state.walkCycle * 2) * 0.2; // between 1.4 and 1.8
+                    const swing = Math.sin(state.walkCycle * 0.5) * 0.1;
+                    soccerBall.position.set(
+                        swing, // slight x movement
+                        bounceHeight,
+                        0.5 // z in front
+                    );
+                }} else {{
+                    // Normal run: ball on ground jiggles
+                    const swing = Math.sin(state.walkCycle) * 0.05;
+                    soccerBall.position.set(
+                        ballBasePos.x + swing * 0.1,
+                        ballBasePos.y + Math.abs(Math.sin(state.walkCycle * 2)) * 0.02,
+                        ballBasePos.z + swing * 0.05
+                    );
+                }}
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
             }} else {{
