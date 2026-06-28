@@ -6,6 +6,13 @@ import json
 import urllib.parse
 import random
 
+# ---- Check if pyttsx3 is available ----
+try:
+    import pyttsx3
+    PYTTTSX3_AVAILABLE = True
+except ImportError:
+    PYTTTSX3_AVAILABLE = False
+
 # ---- Language support ----
 LANGUAGES = {
     "en": "English",
@@ -63,7 +70,9 @@ TRANSLATIONS = {
         "status_kata": "Kata:",
         "speaking": "Speaking:",
         "replay_voice": "🔁 Replay Voice",
-        "gender_note": "Note: Gender selection requires pyttsx3. If using gTTS (fallback), gender is not supported.",
+        "gender_note": "Gender selection requires pyttsx3. Using gTTS (gender‑neutral) as fallback.",
+        "gender_enabled": "✅ Voice gender: {} voice enabled",
+        "gender_unavailable": "⚠️ pyttsx3 not available – gender selection ignored. Using gTTS (gender‑neutral).",
     },
     "fr": {
         "app_title": "Centre de Contrôle Robotique",
@@ -111,7 +120,9 @@ TRANSLATIONS = {
         "status_kata": "Kata :",
         "speaking": "Parle :",
         "replay_voice": "🔁 Rejouer la voix",
-        "gender_note": "Note : La sélection du genre nécessite pyttsx3. Si gTTS est utilisé (secours), le genre n'est pas pris en charge.",
+        "gender_note": "La sélection du genre nécessite pyttsx3. Utilisation de gTTS (genre neutre) comme secours.",
+        "gender_enabled": "✅ Voix {} activée",
+        "gender_unavailable": "⚠️ pyttsx3 non disponible – la sélection du genre est ignorée. Utilisation de gTTS (genre neutre).",
     },
     "es": {
         "app_title": "Centro de Control Robótico",
@@ -159,7 +170,9 @@ TRANSLATIONS = {
         "status_kata": "Kata:",
         "speaking": "Hablando:",
         "replay_voice": "🔁 Repetir voz",
-        "gender_note": "Nota: La selección de género requiere pyttsx3. Si se usa gTTS (alternativa), el género no es compatible.",
+        "gender_note": "La selección de género requiere pyttsx3. Usando gTTS (neutral) como alternativa.",
+        "gender_enabled": "✅ Voz {} activada",
+        "gender_unavailable": "⚠️ pyttsx3 no disponible – selección de género ignorada. Usando gTTS (neutral).",
     },
     "pt": {
         "app_title": "Centro de Controle Robótico",
@@ -207,7 +220,9 @@ TRANSLATIONS = {
         "status_kata": "Kata:",
         "speaking": "Falando:",
         "replay_voice": "🔁 Repetir Voz",
-        "gender_note": "Nota: A seleção de gênero requer pyttsx3. Se usar gTTS (fallback), o gênero não é suportado.",
+        "gender_note": "A seleção de gênero requer pyttsx3. Usando gTTS (neutro) como fallback.",
+        "gender_enabled": "✅ Voz {} ativada",
+        "gender_unavailable": "⚠️ pyttsx3 não disponível – seleção de gênero ignorada. Usando gTTS (neutro).",
     },
     "zh": {
         "app_title": "机器人控制中心",
@@ -255,7 +270,9 @@ TRANSLATIONS = {
         "status_kata": "型 (Kata)：",
         "speaking": "正在说话：",
         "replay_voice": "🔁 重播语音",
-        "gender_note": "注意：性别选择需要 pyttsx3。如果使用 gTTS（备用方案），不支持性别。",
+        "gender_note": "性别选择需要 pyttsx3。使用 gTTS（中性）作为备选。",
+        "gender_enabled": "✅ 已启用 {} 语音",
+        "gender_unavailable": "⚠️ pyttsx3 不可用 – 忽略性别选择。使用 gTTS（中性）。",
     }
 }
 
@@ -268,74 +285,78 @@ def generate_audio(text, lang_code="en", gender="Male"):
         return None
 
     # Try pyttsx3 first (offline, can select voice by gender)
-    try:
-        import pyttsx3
-        import tempfile
+    if PYTTTSX3_AVAILABLE:
+        try:
+            import pyttsx3
+            import tempfile
 
-        engine = pyttsx3.init()
-        voices = engine.getProperty('voices')
-        selected_voice = None
-        
-        # Common male/female voice name patterns
-        male_patterns = ['david', 'male', 'm', 'paul', 'mike', 'brian', 'scott', 'mark', 'james', 'george']
-        female_patterns = ['zira', 'female', 'f', 'susan', 'mary', 'linda', 'patricia', 'jennifer', 'elizabeth']
-        
-        # First, try to find a voice that matches the gender in name or gender attribute
-        for voice in voices:
-            name_lower = voice.name.lower()
-            gender_lower = voice.gender.lower() if hasattr(voice, 'gender') and voice.gender else ''
+            engine = pyttsx3.init()
+            voices = engine.getProperty('voices')
+            selected_voice = None
             
-            if gender.lower() == 'male':
-                if any(p in name_lower for p in male_patterns) or 'male' in gender_lower:
-                    selected_voice = voice.id
-                    break
-            else:  # female
-                if any(p in name_lower for p in female_patterns) or 'female' in gender_lower:
-                    selected_voice = voice.id
-                    break
-        
-        # If no match found, try to pick a voice that contains the gender string
-        if not selected_voice:
+            # Common male/female voice name patterns
+            male_patterns = ['david', 'male', 'm', 'paul', 'mike', 'brian', 'scott', 'mark', 'james', 'george']
+            female_patterns = ['zira', 'female', 'f', 'susan', 'mary', 'linda', 'patricia', 'jennifer', 'elizabeth']
+            
+            # First, try to find a voice that matches the gender in name or gender attribute
             for voice in voices:
                 name_lower = voice.name.lower()
-                if gender.lower() == 'male' and 'male' in name_lower:
-                    selected_voice = voice.id
-                    break
-                elif gender.lower() == 'female' and 'female' in name_lower:
-                    selected_voice = voice.id
-                    break
-        
-        # If still no match, just pick the first voice
-        if not selected_voice and voices:
-            selected_voice = voices[0].id
-        
-        if selected_voice:
-            engine.setProperty('voice', selected_voice)
-        elif voices:
-            engine.setProperty('voice', voices[0].id)
+                gender_lower = voice.gender.lower() if hasattr(voice, 'gender') and voice.gender else ''
+                
+                if gender.lower() == 'male':
+                    if any(p in name_lower for p in male_patterns) or 'male' in gender_lower:
+                        selected_voice = voice.id
+                        break
+                else:  # female
+                    if any(p in name_lower for p in female_patterns) or 'female' in gender_lower:
+                        selected_voice = voice.id
+                        break
+            
+            # If no match found, try to pick a voice that contains the gender string
+            if not selected_voice:
+                for voice in voices:
+                    name_lower = voice.name.lower()
+                    if gender.lower() == 'male' and 'male' in name_lower:
+                        selected_voice = voice.id
+                        break
+                    elif gender.lower() == 'female' and 'female' in name_lower:
+                        selected_voice = voice.id
+                        break
+            
+            # If still no match, just pick the first voice
+            if not selected_voice and voices:
+                selected_voice = voices[0].id
+            
+            if selected_voice:
+                engine.setProperty('voice', selected_voice)
+            elif voices:
+                engine.setProperty('voice', voices[0].id)
 
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
-            tmp_path = tmp.name
-        engine.save_to_file(text, tmp_path)
-        engine.runAndWait()
-        with open(tmp_path, "rb") as f:
-            audio_bytes = f.read()
-        os.unlink(tmp_path)
-        return audio_bytes
-    except Exception:
-        # pyttsx3 failed – fall back to gTTS (gender neutral)
-        try:
-            from gtts import gTTS
-            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
                 tmp_path = tmp.name
-            tts = gTTS(text=text, lang=lang_code, slow=False)
-            tts.save(tmp_path)
+            engine.save_to_file(text, tmp_path)
+            engine.runAndWait()
             with open(tmp_path, "rb") as f:
                 audio_bytes = f.read()
             os.unlink(tmp_path)
             return audio_bytes
         except Exception:
-            return None
+            # pyttsx3 failed – fall back to gTTS
+            pass
+
+    # Fallback to gTTS (gender neutral)
+    try:
+        from gtts import gTTS
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+            tmp_path = tmp.name
+        tts = gTTS(text=text, lang=lang_code, slow=False)
+        tts.save(tmp_path)
+        with open(tmp_path, "rb") as f:
+            audio_bytes = f.read()
+        os.unlink(tmp_path)
+        return audio_bytes
+    except Exception:
+        return None
 
 st.set_page_config(
     page_title="Robotic Control Center | GlobalInternet.py",
@@ -452,6 +473,11 @@ st.markdown("""
         color: #8899bb;
         font-style: italic;
         margin-top: 4px;
+    }
+    .stAlert {
+        padding: 6px 12px;
+        margin-top: 4px;
+        margin-bottom: 4px;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1153,8 +1179,11 @@ with st.sidebar:
         st.session_state.voice_gender = new_gender
         st.rerun()
 
-    # Display note about gender support
-    st.markdown(f'<div class="note">{t("gender_note")}</div>', unsafe_allow_html=True)
+    # Show dynamic status for voice gender
+    if PYTTTSX3_AVAILABLE:
+        st.success(t('gender_enabled').format(st.session_state.voice_gender))
+    else:
+        st.warning(t('gender_unavailable'))
 
     st.markdown("---")
 
