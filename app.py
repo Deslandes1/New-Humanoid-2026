@@ -247,32 +247,23 @@ def generate_audio(text, lang_code="en"):
     if not text.strip():
         return None
 
-    # Try pyttsx3 first (offline, can select male voice)
+    # First, try pyttsx3 (offline, male voice possible)
     try:
         import pyttsx3
         import tempfile
 
         engine = pyttsx3.init()
-        # Get all voices and pick a male one (if available)
         voices = engine.getProperty('voices')
         male_voice = None
         for voice in voices:
-            # Check for male in name or gender attribute
-            name_lower = voice.name.lower()
-            if 'male' in name_lower or 'm' in name_lower:
-                male_voice = voice.id
-                break
-            # Some systems have gender property
-            if hasattr(voice, 'gender') and voice.gender and 'male' in voice.gender.lower():
+            if 'male' in voice.name.lower() or (hasattr(voice, 'gender') and voice.gender and 'male' in voice.gender.lower()):
                 male_voice = voice.id
                 break
         if male_voice:
             engine.setProperty('voice', male_voice)
-        else:
-            # Fallback to first voice if no male identified
-            if voices:
-                engine.setProperty('voice', voices[0].id)
-        # Save to temp file
+        elif voices:
+            engine.setProperty('voice', voices[0].id)
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             tmp_path = tmp.name
         engine.save_to_file(text, tmp_path)
@@ -281,8 +272,8 @@ def generate_audio(text, lang_code="en"):
             audio_bytes = f.read()
         os.unlink(tmp_path)
         return audio_bytes
-    except Exception as e:
-        # Fallback to gTTS if pyttsx3 fails
+    except Exception:
+        # pyttsx3 failed – fall back to gTTS
         try:
             from gtts import gTTS
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
