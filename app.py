@@ -473,7 +473,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (ball appears during run, head juggling) ----
+# ---- 3D Viewer HTML generator (ball appears during run, high head juggling) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -910,7 +910,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 progressBar.style.width = '100%';
             }} else {{
                 if (state.soccerMode && state.cmd === 'run') {{
-                    stepInfoEl.textContent = '⚽ Head Juggling';
+                    stepInfoEl.textContent = '⚽ High Header';
                     progressBar.style.width = '100%';
                 }} else if (state.cmd !== 'idle') {{
                     stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
@@ -973,17 +973,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             if (state.cmd === 'run') {{
                 // Robot is running
                 if (state.soccerMode) {{
-                    // Head juggling: bounce on forehead (front of head)
-                    // Head front face is at z=0.25, ball center z=0.45 (0.25 + radius)
-                    // Forehead vertical center around y=1.35, bounce amplitude 0.2
-                    const headFrontZ = 0.25;
-                    const ballRadius = 0.2;
-                    const ballZ = headFrontZ + ballRadius;
-                    const bounceCenter = 1.35;
-                    const bounceAmp = 0.2;
+                    // High header: ball goes very high, touches forehead at lowest
+                    const bounceCenter = 2.75;
+                    const bounceAmp = 1.25;
                     const bounceHeight = bounceCenter + Math.sin(state.walkCycle * 2) * bounceAmp;
                     const swing = Math.sin(state.walkCycle * 0.5) * 0.1;
-                    soccerBall.position.set(swing, bounceHeight, ballZ);
+                    soccerBall.position.set(swing, bounceHeight, 0.45);
                 }} else {{
                     // Normal run: ball on ground jiggles
                     const swing = Math.sin(state.walkCycle) * 0.05;
