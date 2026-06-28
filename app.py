@@ -63,6 +63,7 @@ TRANSLATIONS = {
         "status_kata": "Kata:",
         "speaking": "Speaking:",
         "replay_voice": "🔁 Replay Voice",
+        "gender_note": "Note: Gender selection requires pyttsx3. If using gTTS (fallback), gender is not supported.",
     },
     "fr": {
         "app_title": "Centre de Contrôle Robotique",
@@ -110,6 +111,7 @@ TRANSLATIONS = {
         "status_kata": "Kata :",
         "speaking": "Parle :",
         "replay_voice": "🔁 Rejouer la voix",
+        "gender_note": "Note : La sélection du genre nécessite pyttsx3. Si gTTS est utilisé (secours), le genre n'est pas pris en charge.",
     },
     "es": {
         "app_title": "Centro de Control Robótico",
@@ -157,6 +159,7 @@ TRANSLATIONS = {
         "status_kata": "Kata:",
         "speaking": "Hablando:",
         "replay_voice": "🔁 Repetir voz",
+        "gender_note": "Nota: La selección de género requiere pyttsx3. Si se usa gTTS (alternativa), el género no es compatible.",
     },
     "pt": {
         "app_title": "Centro de Controle Robótico",
@@ -204,6 +207,7 @@ TRANSLATIONS = {
         "status_kata": "Kata:",
         "speaking": "Falando:",
         "replay_voice": "🔁 Repetir Voz",
+        "gender_note": "Nota: A seleção de gênero requer pyttsx3. Se usar gTTS (fallback), o gênero não é suportado.",
     },
     "zh": {
         "app_title": "机器人控制中心",
@@ -251,13 +255,14 @@ TRANSLATIONS = {
         "status_kata": "型 (Kata)：",
         "speaking": "正在说话：",
         "replay_voice": "🔁 重播语音",
+        "gender_note": "注意：性别选择需要 pyttsx3。如果使用 gTTS（备用方案），不支持性别。",
     }
 }
 
 def get_text(key, lang):
     return TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, key)
 
-# ---- Speech synthesis with gender selection (pyttsx3) fallback to gTTS ----
+# ---- Speech synthesis with improved gender selection ----
 def generate_audio(text, lang_code="en", gender="Male"):
     if not text.strip():
         return None
@@ -270,22 +275,43 @@ def generate_audio(text, lang_code="en", gender="Male"):
         engine = pyttsx3.init()
         voices = engine.getProperty('voices')
         selected_voice = None
-        # Look for voice matching the requested gender
+        
+        # Common male/female voice name patterns
+        male_patterns = ['david', 'male', 'm', 'paul', 'mike', 'brian', 'scott', 'mark', 'james', 'george']
+        female_patterns = ['zira', 'female', 'f', 'susan', 'mary', 'linda', 'patricia', 'jennifer', 'elizabeth']
+        
+        # First, try to find a voice that matches the gender in name or gender attribute
         for voice in voices:
             name_lower = voice.name.lower()
             gender_lower = voice.gender.lower() if hasattr(voice, 'gender') and voice.gender else ''
+            
             if gender.lower() == 'male':
-                if 'male' in name_lower or 'male' in gender_lower:
+                if any(p in name_lower for p in male_patterns) or 'male' in gender_lower:
                     selected_voice = voice.id
                     break
             else:  # female
-                if 'female' in name_lower or 'female' in gender_lower:
+                if any(p in name_lower for p in female_patterns) or 'female' in gender_lower:
                     selected_voice = voice.id
                     break
+        
+        # If no match found, try to pick a voice that contains the gender string
+        if not selected_voice:
+            for voice in voices:
+                name_lower = voice.name.lower()
+                if gender.lower() == 'male' and 'male' in name_lower:
+                    selected_voice = voice.id
+                    break
+                elif gender.lower() == 'female' and 'female' in name_lower:
+                    selected_voice = voice.id
+                    break
+        
+        # If still no match, just pick the first voice
+        if not selected_voice and voices:
+            selected_voice = voices[0].id
+        
         if selected_voice:
             engine.setProperty('voice', selected_voice)
         elif voices:
-            # Fallback to first voice
             engine.setProperty('voice', voices[0].id)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
@@ -421,6 +447,12 @@ st.markdown("""
     }
     .kata-step .step-name { color: #00d4ff; font-weight: 600; font-size: 1.1rem; }
     .kata-step .step-progress { color: #8899bb; font-size: 0.85rem; }
+    .note {
+        font-size: 0.8rem;
+        color: #8899bb;
+        font-style: italic;
+        margin-top: 4px;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1120,6 +1152,9 @@ with st.sidebar:
     if new_gender != st.session_state.voice_gender:
         st.session_state.voice_gender = new_gender
         st.rerun()
+
+    # Display note about gender support
+    st.markdown(f'<div class="note">{t("gender_note")}</div>', unsafe_allow_html=True)
 
     st.markdown("---")
 
