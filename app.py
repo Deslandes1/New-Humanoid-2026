@@ -22,7 +22,7 @@ LANGUAGES = {
     "zh": "中文 (Chinese)"
 }
 
-# Translation dictionary (only English shown for brevity – full translation in final file)
+# Translation dictionary (only English shown, but full included in final answer)
 TRANSLATIONS = {
     "en": {
         "app_title": "Robotic Control Center",
@@ -76,16 +76,208 @@ TRANSLATIONS = {
         "gender_unavailable": "⚠️ pyttsx3 not available – gender selection ignored. Using gTTS (gender‑neutral).",
     },
     "fr": {
-        # ... (full translations omitted for brevity – but included in final file)
+        "app_title": "Centre de Contrôle Robotique",
+        "app_subtitle": "Sélectionnez un robot, commandez-le et regardez-le agir – construit par GlobalInternet.py",
+        "live_sim": "● SIMULATION EN DIRECT",
+        "robot_selection": "🤖 Sélection du robot",
+        "kata_performance": "🥋 Performance Kata",
+        "commands": "🎮 Commandes",
+        "cmd_desc": "Marche et Course en boucle continue. Saut, Salut, Saut périlleux avant, Saut périlleux arrière, Salutation joués une fois.",
+        "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète.",
+        "action_placeholder": "ex: backflip ou Taikyoku Shodan",
+        "execute_action": "▶️ Exécuter l'action",
+        "soccer_play": "⚽ Jouer au foot",
+        "speech": "🗣️ Parole",
+        "speak_placeholder": "ex: Bonjour, je suis votre robot.",
+        "speak_button": "🔊 Faire parler le robot",
+        "contact": "📞 Contact",
+        "status": "🔧 Statut",
+        "current_robot": "Robot actuel",
+        "last_action": "Dernière action",
+        "kata": "Kata",
+        "backstage": "📜 Coulisses – Historique des commandes",
+        "no_commands": "Aucune commande pour l'instant. Envoyez une commande depuis la barre latérale.",
+        "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
+        "footer_line2": "Construit par <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 Contrôle robotique simulé – prêt pour l'intégration matérielle réelle.",
+        "speech_failed": "❌ Échec de la génération vocale. Veuillez vous assurer que pyttsx3 ou gTTS est installé.",
+        "speech_warning": "Veuillez entrer du texte à prononcer.",
+        "action_warning": "Veuillez entrer une action ou un nom de kata.",
+        "active_kata": "Kata actif",
+        "belt": "Ceinture",
+        "robot_view": "🖥️ Vue du robot",
+        "none": "Aucun",
+        "select_kata": "Sélectionner un kata",
+        "select_robot": "Sélectionner un robot",
+        "language": "🌐 Langue",
+        "voice_gender": "🎤 Genre de voix",
+        "male": "Masculin",
+        "female": "Féminin",
+        "email": "Email",
+        "phone": "Téléphone",
+        "website": "Site web",
+        "contact_info": "Coordonnées",
+        "status_current_robot": "Robot actuel :",
+        "status_last_action": "Dernière action :",
+        "status_kata": "Kata :",
+        "speaking": "Parle :",
+        "replay_voice": "🔁 Rejouer la voix",
+        "gender_note": "La sélection du genre nécessite pyttsx3. Utilisation de gTTS (genre neutre) comme secours.",
+        "gender_enabled": "✅ Voix {} activée",
+        "gender_unavailable": "⚠️ pyttsx3 non disponible – la sélection du genre est ignorée. Utilisation de gTTS (genre neutre).",
     },
     "es": {
-        # ...
+        "app_title": "Centro de Control Robótico",
+        "app_subtitle": "Seleccione un robot, comándelo y observe su rendimiento – construido por GlobalInternet.py",
+        "live_sim": "● SIMULACIÓN EN VIVO",
+        "robot_selection": "🤖 Selección de robot",
+        "kata_performance": "🥋 Rendimiento Kata",
+        "commands": "🎮 Comandos",
+        "cmd_desc": "Caminar y Correr en bucle continuo. Saltar, Saludar, Mortal hacia adelante, Mortal hacia atrás, Inclinación se ejecutan una vez.",
+        "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa.",
+        "action_placeholder": "ej: backflip o Taikyoku Shodan",
+        "execute_action": "▶️ Ejecutar acción",
+        "soccer_play": "⚽ Jugar al fútbol",
+        "speech": "🗣️ Voz",
+        "speak_placeholder": "ej: Hola, soy su robot.",
+        "speak_button": "🔊 Hacer hablar al robot",
+        "contact": "📞 Contacto",
+        "status": "🔧 Estado",
+        "current_robot": "Robot actual",
+        "last_action": "Última acción",
+        "kata": "Kata",
+        "backstage": "📜 Bastidores – Historial de comandos",
+        "no_commands": "Aún no hay comandos. Envíe un comando desde la barra lateral.",
+        "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
+        "footer_line2": "Construido por <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 Control robótico simulado – listo para la integración con hardware real.",
+        "speech_failed": "❌ Error en la generación de voz. Asegúrese de que pyttsx3 o gTTS esté instalado.",
+        "speech_warning": "Por favor, ingrese texto para hablar.",
+        "action_warning": "Por favor, ingrese una acción o nombre de kata.",
+        "active_kata": "Kata activo",
+        "belt": "Cinturón",
+        "robot_view": "🖥️ Vista del robot",
+        "none": "Ninguno",
+        "select_kata": "Seleccionar Kata",
+        "select_robot": "Seleccionar Robot",
+        "language": "🌐 Idioma",
+        "voice_gender": "🎤 Género de voz",
+        "male": "Masculino",
+        "female": "Femenino",
+        "email": "Correo electrónico",
+        "phone": "Teléfono",
+        "website": "Sitio web",
+        "contact_info": "Información de contacto",
+        "status_current_robot": "Robot actual:",
+        "status_last_action": "Última acción:",
+        "status_kata": "Kata:",
+        "speaking": "Hablando:",
+        "replay_voice": "🔁 Repetir voz",
+        "gender_note": "La selección de género requiere pyttsx3. Usando gTTS (neutral) como alternativa.",
+        "gender_enabled": "✅ Voz {} activada",
+        "gender_unavailable": "⚠️ pyttsx3 no disponible – selección de género ignorada. Usando gTTS (neutral).",
     },
     "pt": {
-        # ...
+        "app_title": "Centro de Controle Robótico",
+        "app_subtitle": "Selecione um robô, comande-o e veja-o atuar – construído por GlobalInternet.py",
+        "live_sim": "● SIMULAÇÃO AO VIVO",
+        "robot_selection": "🤖 Seleção de Robô",
+        "kata_performance": "🥋 Performance Kata",
+        "commands": "🎮 Comandos",
+        "cmd_desc": "Andar e Correr em loop contínuo. Pular, Acenar, Mortal para frente, Mortal para trás, Reverência executados uma vez.",
+        "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa.",
+        "action_placeholder": "ex: backflip ou Taikyoku Shodan",
+        "execute_action": "▶️ Executar Ação",
+        "soccer_play": "⚽ Jogar futebol",
+        "speech": "🗣️ Fala",
+        "speak_placeholder": "ex: Olá, eu sou o seu robô.",
+        "speak_button": "🔊 Fazer o Robô Falar",
+        "contact": "📞 Contato",
+        "status": "🔧 Status",
+        "current_robot": "Robô atual",
+        "last_action": "Última ação",
+        "kata": "Kata",
+        "backstage": "📜 Bastidores – Histórico de Comandos",
+        "no_commands": "Nenhum comando ainda. Envie um comando pela barra lateral.",
+        "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
+        "footer_line2": "Construído por <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 Controle robótico simulado – pronto para integração com hardware real.",
+        "speech_failed": "❌ Falha na geração de fala. Verifique se pyttsx3 ou gTTS está instalado.",
+        "speech_warning": "Por favor, insira texto para falar.",
+        "action_warning": "Por favor, insira uma ação ou nome de kata.",
+        "active_kata": "Kata ativo",
+        "belt": "Faixa",
+        "robot_view": "🖥️ Visão do Robô",
+        "none": "Nenhum",
+        "select_kata": "Selecionar Kata",
+        "select_robot": "Selecionar Robô",
+        "language": "🌐 Idioma",
+        "voice_gender": "🎤 Gênero de voz",
+        "male": "Masculino",
+        "female": "Feminino",
+        "email": "E-mail",
+        "phone": "Telefone",
+        "website": "Site",
+        "contact_info": "Informações de Contato",
+        "status_current_robot": "Robô atual:",
+        "status_last_action": "Última ação:",
+        "status_kata": "Kata:",
+        "speaking": "Falando:",
+        "replay_voice": "🔁 Repetir Voz",
+        "gender_note": "A seleção de gênero requer pyttsx3. Usando gTTS (neutro) como fallback.",
+        "gender_enabled": "✅ Voz {} ativada",
+        "gender_unavailable": "⚠️ pyttsx3 não disponível – seleção de gênero ignorada. Usando gTTS (neutro).",
     },
     "zh": {
-        # ...
+        "app_title": "机器人控制中心",
+        "app_subtitle": "选择机器人，发出指令，观看表演 – 由 GlobalInternet.py 构建",
+        "live_sim": "● 实时模拟",
+        "robot_selection": "🤖 机器人选择",
+        "kata_performance": "🥋 型 (Kata) 表演",
+        "commands": "🎮 指令",
+        "cmd_desc": "行走和跑步循环持续。跳跃、挥手、前空翻、后空翻、鞠躬各执行一次。",
+        "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列。",
+        "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
+        "execute_action": "▶️ 执行指令",
+        "soccer_play": "⚽ 踢足球",
+        "speech": "🗣️ 语音",
+        "speak_placeholder": "例如：你好，我是你的机器人。",
+        "speak_button": "🔊 让机器人说话",
+        "contact": "📞 联系方式",
+        "status": "🔧 状态",
+        "current_robot": "当前机器人",
+        "last_action": "上次动作",
+        "kata": "型 (Kata)",
+        "backstage": "📜 后台 – 指令历史",
+        "no_commands": "尚无指令。请从侧边栏发送指令。",
+        "footer_line1": "© 2026 GlobalInternet.py 在线软件公司",
+        "footer_line2": "由 <strong>Gesner Deslandes</strong> 构建 | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 模拟机器人控制 – 可集成真实硬件。",
+        "speech_failed": "❌ 语音生成失败。请确保已安装 pyttsx3 或 gTTS。",
+        "speech_warning": "请输入要说的文本。",
+        "action_warning": "请输入动作或型 (Kata) 名称。",
+        "active_kata": "当前型 (Kata)",
+        "belt": "腰带等级",
+        "robot_view": "🖥️ 机器人视图",
+        "none": "无",
+        "select_kata": "选择型 (Kata)",
+        "select_robot": "选择机器人",
+        "language": "🌐 语言",
+        "voice_gender": "🎤 语音性别",
+        "male": "男性",
+        "female": "女性",
+        "email": "电子邮件",
+        "phone": "电话",
+        "website": "网站",
+        "contact_info": "联系信息",
+        "status_current_robot": "当前机器人：",
+        "status_last_action": "上次动作：",
+        "status_kata": "型 (Kata)：",
+        "speaking": "正在说话：",
+        "replay_voice": "🔁 重播语音",
+        "gender_note": "性别选择需要 pyttsx3。使用 gTTS（中性）作为备选。",
+        "gender_enabled": "✅ 已启用 {} 语音",
+        "gender_unavailable": "⚠️ pyttsx3 不可用 – 忽略性别选择。使用 gTTS（中性）。",
     }
 }
 
@@ -281,7 +473,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (with waist, "G", and soccer ball) ----
+# ---- 3D Viewer HTML generator ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     # Colors
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -307,16 +499,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         headband_color = "#ff0000"
         belt_rank = ""
 
-    # Command – include 'soccer'
     valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow', 'soccer']
     cmd_lower = command.lower() if command else "idle"
     anim_cmd = cmd_lower if cmd_lower in valid_commands else 'idle'
 
-    # Kata sequence
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Build HTML with Three.js embedded
     cache_buster = random.randint(100000, 999999)
     html = f"""
     <!DOCTYPE html>
@@ -374,11 +563,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         import * as THREE from 'three';
         import {{ OrbitControls }} from 'https://unpkg.com/three@0.160.0/examples/jsm/controls/OrbitControls.js';
 
-        // DOM elements for step info
         const stepInfoEl = document.getElementById('step-info');
         const progressBar = document.getElementById('step-progress-bar');
 
-        // ---- Setup scene ----
+        // ---- Scene setup ----
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a0a0f);
 
@@ -392,7 +580,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
         document.body.appendChild(renderer.domElement);
 
-        // ---- Controls ----
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.target.set(0, 1.2, 0);
         controls.enableDamping = true;
@@ -421,11 +608,11 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         gridHelper.position.y = -0.5;
         scene.add(gridHelper);
 
-        // ---- Robot construction (Transformer style with waist, 'G', and soccer ball) ----
+        // ---- Robot construction (Transformer style with waist, 'G') ----
         const robotGroup = new THREE.Group();
         robotGroup.position.y = 0.5;
 
-        // Materials
+        // Materials (same as before, full definition in final code)
         const mainMat = new THREE.MeshStandardMaterial({{ color: '{main_color}', roughness: 0.4, metalness: 0.6 }});
         const accentMat = new THREE.MeshStandardMaterial({{ color: '{accent_color}', roughness: 0.3, metalness: 0.5 }});
         const darkMat = new THREE.MeshStandardMaterial({{ color: '#333333', roughness: 0.5, metalness: 0.4 }});
@@ -440,20 +627,18 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const torsoGroup = new THREE.Group();
         robotGroup.add(torsoGroup);
 
-        // Main torso box
         const torsoGeo = new THREE.BoxGeometry(0.9, 1.1, 0.6);
         const torso = new THREE.Mesh(torsoGeo, mainMat);
         torso.position.y = 0.55;
         torso.castShadow = true;
         torsoGroup.add(torso);
 
-        // Chest plate
         const chestGeo = new THREE.BoxGeometry(0.7, 0.4, 0.15);
         const chest = new THREE.Mesh(chestGeo, accentMat);
         chest.position.set(0, 0.3, 0.4);
         torsoGroup.add(chest);
 
-        // ---- "G" emblem ----
+        // "G" emblem
         (function() {{
             const canvas = document.createElement('canvas');
             canvas.width = 128;
@@ -484,32 +669,29 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             torsoGroup.add(emblem);
         }})();
 
-        // Abs / belt
         const beltGeo = new THREE.BoxGeometry(0.8, 0.12, 0.5);
         const belt = new THREE.Mesh(beltGeo, beltMat);
         belt.position.set(0, 0.0, 0);
         torsoGroup.add(belt);
 
-        // ---- Waist ----
+        // Waist
         const waistGeo = new THREE.BoxGeometry(0.7, 0.2, 0.4);
         const waist = new THREE.Mesh(waistGeo, waistMat);
         waist.position.set(0, -0.2, 0);
         waist.castShadow = true;
         torsoGroup.add(waist);
 
-        // Pelvis / hip
         const hipGeo = new THREE.BoxGeometry(0.7, 0.2, 0.5);
         const hip = new THREE.Mesh(hipGeo, darkMat);
         hip.position.set(0, -0.4, 0);
         torsoGroup.add(hip);
 
-        // ---- Neck ----
+        // ---- Neck & Head ----
         const neckGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.15);
         const neck = new THREE.Mesh(neckGeo, jointMat);
         neck.position.set(0, 1.1, 0);
         torsoGroup.add(neck);
 
-        // ---- Head ----
         const headGroup = new THREE.Group();
         headGroup.position.set(0, 1.2, 0);
         torsoGroup.add(headGroup);
@@ -519,13 +701,11 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         head.castShadow = true;
         headGroup.add(head);
 
-        // Visor
         const visorGeo = new THREE.BoxGeometry(0.35, 0.12, 0.05);
         const visor = new THREE.Mesh(visorGeo, visorMat);
         visor.position.set(0, 0.0, 0.28);
         head.add(visor);
 
-        // Antenna
         const antGeo = new THREE.CylinderGeometry(0.02, 0.02, 0.2);
         const ant = new THREE.Mesh(antGeo, antennaMat);
         ant.position.set(0, 0.35, 0);
@@ -535,7 +715,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         ball.position.set(0, 0.45, 0);
         head.add(ball);
 
-        // Headband (kata)
         if ({str(is_kata).lower()}) {{
             const bandGeo = new THREE.TorusGeometry(0.3, 0.03, 8, 20);
             const band = new THREE.Mesh(bandGeo, headbandMat);
@@ -547,43 +726,37 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         // ---- Shoulder pads ----
         const shoulderPadGeo = new THREE.SphereGeometry(0.22, 8, 8);
         const shoulderPadMat = new THREE.MeshStandardMaterial({{ color: '#555555', roughness: 0.3, metalness: 0.6 }});
-
         const leftShoulder = new THREE.Mesh(shoulderPadGeo, shoulderPadMat);
         leftShoulder.position.set(-0.6, 0.9, 0);
         torsoGroup.add(leftShoulder);
-
         const rightShoulder = new THREE.Mesh(shoulderPadGeo, shoulderPadMat);
         rightShoulder.position.set(0.6, 0.9, 0);
         torsoGroup.add(rightShoulder);
 
         // ---- Arms ----
+        const upperArmGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
+        const elbowGeo = new THREE.SphereGeometry(0.08, 8, 8);
+        const forearmGeo = new THREE.BoxGeometry(0.18, 0.3, 0.18);
+        const handGeo = new THREE.BoxGeometry(0.15, 0.1, 0.15);
+
         // Left arm
         const leftArmGroup = new THREE.Group();
         leftArmGroup.position.set(-0.65, 0.8, 0);
         torsoGroup.add(leftArmGroup);
-
-        const upperArmGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
         const leftUpperArm = new THREE.Mesh(upperArmGeo, mainMat);
         leftUpperArm.position.y = -0.2;
         leftUpperArm.castShadow = true;
         leftArmGroup.add(leftUpperArm);
-
-        const elbowGeo = new THREE.SphereGeometry(0.08, 8, 8);
         const leftElbow = new THREE.Mesh(elbowGeo, jointMat);
         leftElbow.position.y = -0.4;
         leftArmGroup.add(leftElbow);
-
         const leftForearmGroup = new THREE.Group();
         leftForearmGroup.position.y = -0.4;
         leftArmGroup.add(leftForearmGroup);
-
-        const forearmGeo = new THREE.BoxGeometry(0.18, 0.3, 0.18);
         const leftForearm = new THREE.Mesh(forearmGeo, darkMat);
         leftForearm.position.y = -0.15;
         leftForearm.castShadow = true;
         leftForearmGroup.add(leftForearm);
-
-        const handGeo = new THREE.BoxGeometry(0.15, 0.1, 0.15);
         const leftHand = new THREE.Mesh(handGeo, accentMat);
         leftHand.position.y = -0.35;
         leftForearmGroup.add(leftHand);
@@ -592,57 +765,48 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const rightArmGroup = new THREE.Group();
         rightArmGroup.position.set(0.65, 0.8, 0);
         torsoGroup.add(rightArmGroup);
-
         const rightUpperArm = new THREE.Mesh(upperArmGeo, mainMat);
         rightUpperArm.position.y = -0.2;
         rightUpperArm.castShadow = true;
         rightArmGroup.add(rightUpperArm);
-
         const rightElbow = new THREE.Mesh(elbowGeo, jointMat);
         rightElbow.position.y = -0.4;
         rightArmGroup.add(rightElbow);
-
         const rightForearmGroup = new THREE.Group();
         rightForearmGroup.position.y = -0.4;
         rightArmGroup.add(rightForearmGroup);
-
         const rightForearm = new THREE.Mesh(forearmGeo, darkMat);
         rightForearm.position.y = -0.15;
         rightForearm.castShadow = true;
         rightForearmGroup.add(rightForearm);
-
         const rightHand = new THREE.Mesh(handGeo, accentMat);
         rightHand.position.y = -0.35;
         rightForearmGroup.add(rightHand);
 
         // ---- Legs ----
+        const upperLegGeo = new THREE.BoxGeometry(0.25, 0.4, 0.25);
+        const kneeGeo = new THREE.SphereGeometry(0.1, 8, 8);
+        const lowerLegGeo = new THREE.BoxGeometry(0.22, 0.35, 0.22);
+        const footGeo = new THREE.BoxGeometry(0.3, 0.08, 0.4);
+
         // Left leg
         const leftLegGroup = new THREE.Group();
         leftLegGroup.position.set(-0.25, -0.45, 0);
         torsoGroup.add(leftLegGroup);
-
-        const upperLegGeo = new THREE.BoxGeometry(0.25, 0.4, 0.25);
         const leftUpperLeg = new THREE.Mesh(upperLegGeo, mainMat);
         leftUpperLeg.position.y = -0.2;
         leftUpperLeg.castShadow = true;
         leftLegGroup.add(leftUpperLeg);
-
-        const kneeGeo = new THREE.SphereGeometry(0.1, 8, 8);
         const leftKnee = new THREE.Mesh(kneeGeo, jointMat);
         leftKnee.position.y = -0.4;
         leftLegGroup.add(leftKnee);
-
         const leftLowerLegGroup = new THREE.Group();
         leftLowerLegGroup.position.y = -0.4;
         leftLegGroup.add(leftLowerLegGroup);
-
-        const lowerLegGeo = new THREE.BoxGeometry(0.22, 0.35, 0.22);
         const leftLowerLeg = new THREE.Mesh(lowerLegGeo, darkMat);
         leftLowerLeg.position.y = -0.175;
         leftLowerLeg.castShadow = true;
         leftLowerLegGroup.add(leftLowerLeg);
-
-        const footGeo = new THREE.BoxGeometry(0.3, 0.08, 0.4);
         const leftFoot = new THREE.Mesh(footGeo, accentMat);
         leftFoot.position.set(0, -0.4, 0.05);
         leftLowerLegGroup.add(leftFoot);
@@ -651,25 +815,20 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const rightLegGroup = new THREE.Group();
         rightLegGroup.position.set(0.25, -0.45, 0);
         torsoGroup.add(rightLegGroup);
-
         const rightUpperLeg = new THREE.Mesh(upperLegGeo, mainMat);
         rightUpperLeg.position.y = -0.2;
         rightUpperLeg.castShadow = true;
         rightLegGroup.add(rightUpperLeg);
-
         const rightKnee = new THREE.Mesh(kneeGeo, jointMat);
         rightKnee.position.y = -0.4;
         rightLegGroup.add(rightKnee);
-
         const rightLowerLegGroup = new THREE.Group();
         rightLowerLegGroup.position.y = -0.4;
         rightLegGroup.add(rightLowerLegGroup);
-
         const rightLowerLeg = new THREE.Mesh(lowerLegGeo, darkMat);
         rightLowerLeg.position.y = -0.175;
         rightLowerLeg.castShadow = true;
         rightLowerLegGroup.add(rightLowerLeg);
-
         const rightFoot = new THREE.Mesh(footGeo, accentMat);
         rightFoot.position.set(0, -0.4, 0.05);
         rightLowerLegGroup.add(rightFoot);
@@ -685,7 +844,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         }});
         const soccerBall = new THREE.Mesh(ballGeo, ballMat);
         soccerBall.castShadow = true;
-        // Add soccer pattern using canvas
         (function() {{
             const c = document.createElement('canvas');
             c.width = 256;
@@ -710,15 +868,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             soccerBall.material.map = tex;
             soccerBall.material.needsUpdate = true;
         }})();
-        // Position ball in front of robot (z = 0.5) at right foot initially
-        const rightFootFront = new THREE.Vector3(0.3, 0.0, 0.5);
-        soccerBall.position.copy(rightFootFront);
-        robotGroup.add(soccerBall);
-
-        // Store positions for soccer animation (in front of robot)
-        const leftFootPos = new THREE.Vector3(-0.3, 0.0, 0.5);
+        // Positions in front (z=0.5)
         const rightFootPos = new THREE.Vector3(0.3, 0.0, 0.5);
+        const leftFootPos = new THREE.Vector3(-0.3, 0.0, 0.5);
         const headPos = new THREE.Vector3(0, 1.6, 0.5);
+        soccerBall.position.copy(rightFootPos);
+        robotGroup.add(soccerBall);
 
         scene.add(robotGroup);
 
@@ -739,14 +894,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             kataSeq: {kata_sequence_json},
             initCmd: '{anim_cmd}',
             validCmds: {json.dumps(valid_commands)},
-            // Soccer specific
             soccerActive: false,
             soccerPhase: 0,
             soccerTimer: 0,
-            soccerDuration: [3.0, 3.0, 1.0], // phase durations
+            soccerDuration: [3.0, 3.0, 1.0],
         }};
 
-        // Helper to update step info
+        // ---- UI update ----
         function updateStepInfo() {{
             if (state.kataRunning && state.kataAction !== null) {{
                 const stepName = state.kataAction[0];
@@ -759,7 +913,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 stepInfoEl.textContent = '✅ Kata Complete!';
                 progressBar.style.width = '100%';
             }} else if (state.soccerActive) {{
-                const phaseNames = ['⚽ Foot Bounce', '⚽ Header (2 bounces)', '⚽ Drop to Right Foot'];
+                const phaseNames = ['⚽ Foot Juggling', '⚽ Kick & Header', '⚽ Drop to Right Foot'];
                 const phase = Math.min(state.soccerPhase, 2);
                 const totalDur = state.soccerDuration.reduce((a,b)=>a+b, 0);
                 let elapsed = 0;
@@ -779,9 +933,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             }}
         }}
 
-        // ---- Update function ----
+        // ---- Update logic ----
         function update(dt) {{
-            // Kata logic
+            // Kata logic (unchanged)
             if (state.kataRunning && !state.kataComplete) {{
                 if (state.kataAction === null) {{
                     if (state.kataIdx < state.kataSeq.length) {{
@@ -827,39 +981,44 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 state.soccerTimer += dt;
                 let phase = state.soccerPhase;
                 let phaseTimer = state.soccerTimer;
-                // Find which phase we are in
                 while (phase < 3 && phaseTimer > state.soccerDuration[phase]) {{
                     phaseTimer -= state.soccerDuration[phase];
                     phase++;
                 }}
                 if (phase >= 3) {{
-                    // Done
                     state.soccerActive = false;
                     state.soccerPhase = 0;
                     state.soccerTimer = 0;
-                    // Ball ends at right foot front
                     soccerBall.position.copy(rightFootPos);
                     soccerBall.position.y = 0.0;
                     updateStepInfo();
                     return;
                 }}
                 state.soccerPhase = phase;
-                const t = phaseTimer / state.soccerDuration[phase]; // 0..1
+                const t = phaseTimer / state.soccerDuration[phase];
                 let pos = new THREE.Vector3();
                 if (phase === 0) {{
-                    // Foot bounce: alternate left/right, bounce up to 0.4
-                    const cycle = t * 6; // 3 complete bounces
+                    // Foot juggling: alternate feet near ground, small bounce
+                    const cycle = t * 6; // 3 complete passes
                     const footX = (cycle % 2 < 1) ? leftFootPos.x : rightFootPos.x;
-                    const bounce = Math.abs(Math.sin(cycle * Math.PI)) * 0.35 + 0.05;
+                    const bounce = Math.abs(Math.sin(cycle * Math.PI)) * 0.15 + 0.05; // height ~0.05-0.2
                     pos.set(footX, bounce, leftFootPos.z);
                 }} else if (phase === 1) {{
-                    // Header: two bounces at head height
-                    // We'll do two bounces: first bounce goes up to 1.6, then down to 1.2, second up to 1.6, down to 0.4? No, we want bounces at head.
-                    // Better: keep ball near head and oscillate: y = 1.5 + 0.2*sin(2*PI*2*t)
-                    const headY = 1.5 + 0.15 * Math.sin(t * Math.PI * 4);
-                    pos.set(0, headY, headPos.z);
+                    // Kick & header: first 0.5s kick up, then bounce at head
+                    const kickDur = 0.5;
+                    if (t < kickDur / state.soccerDuration[phase]) {{
+                        // Kick up: from ground to head
+                        const localT = t / (kickDur / state.soccerDuration[phase]);
+                        const y = localT * 1.6;
+                        pos.set(0, y, headPos.z);
+                    }} else {{
+                        // Header bounces: oscillate around head height
+                        const localT = (t - kickDur / state.soccerDuration[phase]) / (1 - kickDur / state.soccerDuration[phase]);
+                        const bounce = Math.sin(localT * Math.PI * 4) * 0.08 + 0.08; // two bounces
+                        pos.set(0, 1.6 + bounce, headPos.z);
+                    }}
                 }} else if (phase === 2) {{
-                    // Drop to right foot: smooth fall from head to right foot
+                    // Drop to right foot: smooth fall
                     const startY = 1.6;
                     const endY = 0.0;
                     const y = startY + (endY - startY) * t;
@@ -867,7 +1026,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     pos.set(x, y, headPos.z);
                 }}
                 soccerBall.position.copy(pos);
-                // Rotate ball
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
                 updateStepInfo();
@@ -904,9 +1062,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             }}
         }}
 
-        // ---- Apply animations to robot ----
+        // ---- Robot animation ----
         function animateRobot() {{
-            // If not in soccer, put ball at right foot front
             if (!state.soccerActive) {{
                 if (state.cmd === 'idle' || state.cmd === 'bow') {{
                     soccerBall.position.copy(rightFootPos);
@@ -936,7 +1093,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 const legSwing = swing * 0.6;
                 const elbowSwing = swing * 0.3;
                 const kneeSwing = swing * 0.3;
-
                 leftArmGroup.rotation.x = -armSwing;
                 rightArmGroup.rotation.x = armSwing;
                 leftForearmGroup.rotation.x = -elbowSwing;
@@ -985,24 +1141,18 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
         // ---- Animation loop ----
         let prevTime = performance.now();
-
         function animate(time) {{
             const dt = Math.min((time - prevTime) / 1000, 0.05);
             prevTime = time;
-
             update(dt);
             animateRobot();
-            // Ensure step info updates if not in kata/soccer
-            if (!state.kataRunning && !state.soccerActive) {{
-                updateStepInfo();
-            }}
-
+            if (!state.kataRunning && !state.soccerActive) updateStepInfo();
             controls.update();
             renderer.render(scene, camera);
             requestAnimationFrame(animate);
         }}
 
-        // ---- Resize handler ----
+        // ---- Resize ----
         window.addEventListener('resize', () => {{
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
@@ -1015,7 +1165,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             state.soccerActive = true;
             state.soccerPhase = 0;
             state.soccerTimer = 0;
-            // Reset ball to starting position (right foot)
             soccerBall.position.copy(rightFootPos);
             soccerBall.position.y = 0.0;
             updateStepInfo();
@@ -1117,7 +1266,7 @@ with st.sidebar:
         st.session_state.language = lang_choice
         st.rerun()
 
-    # Voice Gender selector
+    # Voice Gender
     voice_gender_choice = st.selectbox(
         t('voice_gender'),
         options=[t('male'), t('female')],
