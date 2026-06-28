@@ -51,6 +51,9 @@ TRANSLATIONS = {
         "select_kata": "Select Kata",
         "select_robot": "Select Robot",
         "language": "🌐 Language",
+        "voice_gender": "🎤 Voice Gender",
+        "male": "Male",
+        "female": "Female",
         "email": "Email",
         "phone": "Phone",
         "website": "Website",
@@ -95,6 +98,9 @@ TRANSLATIONS = {
         "select_kata": "Sélectionner un kata",
         "select_robot": "Sélectionner un robot",
         "language": "🌐 Langue",
+        "voice_gender": "🎤 Genre de voix",
+        "male": "Masculin",
+        "female": "Féminin",
         "email": "Email",
         "phone": "Téléphone",
         "website": "Site web",
@@ -139,6 +145,9 @@ TRANSLATIONS = {
         "select_kata": "Seleccionar Kata",
         "select_robot": "Seleccionar Robot",
         "language": "🌐 Idioma",
+        "voice_gender": "🎤 Género de voz",
+        "male": "Masculino",
+        "female": "Femenino",
         "email": "Correo electrónico",
         "phone": "Teléfono",
         "website": "Sitio web",
@@ -183,6 +192,9 @@ TRANSLATIONS = {
         "select_kata": "Selecionar Kata",
         "select_robot": "Selecionar Robô",
         "language": "🌐 Idioma",
+        "voice_gender": "🎤 Gênero de voz",
+        "male": "Masculino",
+        "female": "Feminino",
         "email": "E-mail",
         "phone": "Telefone",
         "website": "Site",
@@ -227,6 +239,9 @@ TRANSLATIONS = {
         "select_kata": "选择型 (Kata)",
         "select_robot": "选择机器人",
         "language": "🌐 语言",
+        "voice_gender": "🎤 语音性别",
+        "male": "男性",
+        "female": "女性",
         "email": "电子邮件",
         "phone": "电话",
         "website": "网站",
@@ -242,26 +257,35 @@ TRANSLATIONS = {
 def get_text(key, lang):
     return TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, key)
 
-# ---- Speech synthesis with male voice (pyttsx3) fallback to gTTS ----
-def generate_audio(text, lang_code="en"):
+# ---- Speech synthesis with gender selection (pyttsx3) fallback to gTTS ----
+def generate_audio(text, lang_code="en", gender="Male"):
     if not text.strip():
         return None
 
-    # First, try pyttsx3 (offline, male voice possible)
+    # Try pyttsx3 first (offline, can select voice by gender)
     try:
         import pyttsx3
         import tempfile
 
         engine = pyttsx3.init()
         voices = engine.getProperty('voices')
-        male_voice = None
+        selected_voice = None
+        # Look for voice matching the requested gender
         for voice in voices:
-            if 'male' in voice.name.lower() or (hasattr(voice, 'gender') and voice.gender and 'male' in voice.gender.lower()):
-                male_voice = voice.id
-                break
-        if male_voice:
-            engine.setProperty('voice', male_voice)
+            name_lower = voice.name.lower()
+            gender_lower = voice.gender.lower() if hasattr(voice, 'gender') and voice.gender else ''
+            if gender.lower() == 'male':
+                if 'male' in name_lower or 'male' in gender_lower:
+                    selected_voice = voice.id
+                    break
+            else:  # female
+                if 'female' in name_lower or 'female' in gender_lower:
+                    selected_voice = voice.id
+                    break
+        if selected_voice:
+            engine.setProperty('voice', selected_voice)
         elif voices:
+            # Fallback to first voice
             engine.setProperty('voice', voices[0].id)
 
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
@@ -273,7 +297,7 @@ def generate_audio(text, lang_code="en"):
         os.unlink(tmp_path)
         return audio_bytes
     except Exception:
-        # pyttsx3 failed – fall back to gTTS
+        # pyttsx3 failed – fall back to gTTS (gender neutral)
         try:
             from gtts import gTTS
             with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
@@ -1044,6 +1068,8 @@ if 'kata' not in st.session_state:
     st.session_state.kata = None
 if 'language' not in st.session_state:
     st.session_state.language = "en"
+if 'voice_gender' not in st.session_state:
+    st.session_state.voice_gender = "Male"
 
 # ========== HEADER ==========
 lang = st.session_state.language
@@ -1080,6 +1106,19 @@ with st.sidebar:
     )
     if lang_choice != st.session_state.language:
         st.session_state.language = lang_choice
+        st.rerun()
+
+    # Voice Gender selector
+    voice_gender_choice = st.selectbox(
+        t('voice_gender'),
+        options=[t('male'), t('female')],
+        index=0 if st.session_state.voice_gender == "Male" else 1,
+        key="voice_gender_select"
+    )
+    # Map back to "Male"/"Female" for internal use
+    new_gender = "Male" if voice_gender_choice == t('male') else "Female"
+    if new_gender != st.session_state.voice_gender:
+        st.session_state.voice_gender = new_gender
         st.rerun()
 
     st.markdown("---")
@@ -1164,7 +1203,7 @@ with st.sidebar:
     if st.button(t('speak_button'), use_container_width=True):
         if speak_input.strip():
             st.session_state.speak_text = speak_input.strip()
-            audio_bytes = generate_audio(speak_input.strip(), lang)
+            audio_bytes = generate_audio(speak_input.strip(), lang, st.session_state.voice_gender)
             if audio_bytes:
                 st.session_state.last_spoken_text = speak_input.strip()
                 st.session_state.last_spoken_audio = audio_bytes
