@@ -41,7 +41,7 @@ TRANSLATIONS = {
         "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
         "footer_line2": "Built by <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
         "footer_line3": "🤖 Simulated robot control – ready for real-world hardware integration.",
-        "speech_failed": "❌ Speech generation failed. Please ensure gTTS is installed.",
+        "speech_failed": "❌ Speech generation failed. Please ensure pyttsx3 or gTTS is installed.",
         "speech_warning": "Please enter text to speak.",
         "action_warning": "Please enter an action or kata name.",
         "active_kata": "Active Kata",
@@ -85,7 +85,7 @@ TRANSLATIONS = {
         "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
         "footer_line2": "Construit par <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
         "footer_line3": "🤖 Contrôle robotique simulé – prêt pour l'intégration matérielle réelle.",
-        "speech_failed": "❌ Échec de la génération vocale. Veuillez vous assurer que gTTS est installé.",
+        "speech_failed": "❌ Échec de la génération vocale. Veuillez vous assurer que pyttsx3 ou gTTS est installé.",
         "speech_warning": "Veuillez entrer du texte à prononcer.",
         "action_warning": "Veuillez entrer une action ou un nom de kata.",
         "active_kata": "Kata actif",
@@ -129,7 +129,7 @@ TRANSLATIONS = {
         "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
         "footer_line2": "Construido por <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
         "footer_line3": "🤖 Control robótico simulado – listo para la integración con hardware real.",
-        "speech_failed": "❌ Error en la generación de voz. Asegúrese de que gTTS esté instalado.",
+        "speech_failed": "❌ Error en la generación de voz. Asegúrese de que pyttsx3 o gTTS esté instalado.",
         "speech_warning": "Por favor, ingrese texto para hablar.",
         "action_warning": "Por favor, ingrese una acción o nombre de kata.",
         "active_kata": "Kata activo",
@@ -173,7 +173,7 @@ TRANSLATIONS = {
         "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
         "footer_line2": "Construído por <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
         "footer_line3": "🤖 Controle robótico simulado – pronto para integração com hardware real.",
-        "speech_failed": "❌ Falha na geração de fala. Verifique se o gTTS está instalado.",
+        "speech_failed": "❌ Falha na geração de fala. Verifique se pyttsx3 ou gTTS está instalado.",
         "speech_warning": "Por favor, insira texto para falar.",
         "action_warning": "Por favor, insira uma ação ou nome de kata.",
         "active_kata": "Kata ativo",
@@ -217,7 +217,7 @@ TRANSLATIONS = {
         "footer_line1": "© 2026 GlobalInternet.py 在线软件公司",
         "footer_line2": "由 <strong>Gesner Deslandes</strong> 构建 | (509) 4738-5663 | deslandes78@gmail.com",
         "footer_line3": "🤖 模拟机器人控制 – 可集成真实硬件。",
-        "speech_failed": "❌ 语音生成失败。请确保已安装 gTTS。",
+        "speech_failed": "❌ 语音生成失败。请确保已安装 pyttsx3 或 gTTS。",
         "speech_warning": "请输入要说的文本。",
         "action_warning": "请输入动作或型 (Kata) 名称。",
         "active_kata": "当前型 (Kata)",
@@ -242,26 +242,59 @@ TRANSLATIONS = {
 def get_text(key, lang):
     return TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, key)
 
-try:
-    from gtts import gTTS
-    VOICE_AVAILABLE = True
-except ImportError:
-    VOICE_AVAILABLE = False
-
+# ---- Speech synthesis with male voice (pyttsx3) fallback to gTTS ----
 def generate_audio(text, lang_code="en"):
-    if not VOICE_AVAILABLE or not text.strip():
+    if not text.strip():
         return None
+
+    # Try pyttsx3 first (offline, can select male voice)
     try:
-        with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+        import pyttsx3
+        import tempfile
+
+        engine = pyttsx3.init()
+        # Get all voices and pick a male one (if available)
+        voices = engine.getProperty('voices')
+        male_voice = None
+        for voice in voices:
+            # Check for male in name or gender attribute
+            name_lower = voice.name.lower()
+            if 'male' in name_lower or 'm' in name_lower:
+                male_voice = voice.id
+                break
+            # Some systems have gender property
+            if hasattr(voice, 'gender') and voice.gender and 'male' in voice.gender.lower():
+                male_voice = voice.id
+                break
+        if male_voice:
+            engine.setProperty('voice', male_voice)
+        else:
+            # Fallback to first voice if no male identified
+            if voices:
+                engine.setProperty('voice', voices[0].id)
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as tmp:
             tmp_path = tmp.name
-        tts = gTTS(text=text, lang=lang_code, slow=False)
-        tts.save(tmp_path)
+        engine.save_to_file(text, tmp_path)
+        engine.runAndWait()
         with open(tmp_path, "rb") as f:
             audio_bytes = f.read()
         os.unlink(tmp_path)
         return audio_bytes
-    except Exception:
-        return None
+    except Exception as e:
+        # Fallback to gTTS if pyttsx3 fails
+        try:
+            from gtts import gTTS
+            with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as tmp:
+                tmp_path = tmp.name
+            tts = gTTS(text=text, lang=lang_code, slow=False)
+            tts.save(tmp_path)
+            with open(tmp_path, "rb") as f:
+                audio_bytes = f.read()
+            os.unlink(tmp_path)
+            return audio_bytes
+        except Exception:
+            return None
 
 st.set_page_config(
     page_title="Robotic Control Center | GlobalInternet.py",
@@ -1163,10 +1196,10 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(f"### {t('status')}")
-    st.markdown(f"**{t('current_robot')}:** {st.session_state.robot_selected}")
-    st.markdown(f"**{t('last_action')}:** {st.session_state.last_action}")
+    st.markdown(f"**{t('status_current_robot')}** {st.session_state.robot_selected}")
+    st.markdown(f"**{t('status_last_action')}** {st.session_state.last_action}")
     if st.session_state.kata:
-        st.markdown(f"**{t('kata')}:** {st.session_state.kata}")
+        st.markdown(f"**{t('status_kata')}** {st.session_state.kata}")
 
 # ========== MAIN CONTENT ==========
 col_view, col_info = st.columns([3, 1])
@@ -1178,9 +1211,7 @@ with col_view:
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata
     )
-    data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    data_uri += f"#{random.randint(1, 999999)}"
-    st.iframe(data_uri, height=650, width=700)
+    st.components.v1.html(viewer_html, height=650, width=700, scrolling=False)
 
 with col_info:
     st.markdown(f"""
