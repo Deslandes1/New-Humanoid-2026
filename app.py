@@ -6,6 +6,242 @@ import json
 import urllib.parse
 import random
 
+# ---- Language support ----
+LANGUAGES = {
+    "en": "English",
+    "fr": "Français",
+    "es": "Español",
+    "pt": "Português",
+    "zh": "中文 (Chinese)"
+}
+
+# Translation dictionary
+TRANSLATIONS = {
+    "en": {
+        "app_title": "Robotic Control Center",
+        "app_subtitle": "Select a robot, command it, and watch it perform – built by GlobalInternet.py",
+        "live_sim": "● LIVE SIMULATION",
+        "robot_selection": "🤖 Robot Selection",
+        "kata_performance": "🥋 Kata Performance",
+        "commands": "🎮 Commands",
+        "cmd_desc": "Walk and Run loop continuously. Jump, Wave, Frontflip, Backflip, Bow play once.",
+        "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.",
+        "action_placeholder": "e.g., backflip or Taikyoku Shodan",
+        "execute_action": "▶️ Execute Action",
+        "speech": "🗣️ Speech",
+        "speak_placeholder": "e.g., Hello, I am your robot.",
+        "speak_button": "🔊 Make Robot Speak",
+        "contact": "📞 Contact",
+        "status": "🔧 Status",
+        "current_robot": "Current Robot",
+        "last_action": "Last Action",
+        "kata": "Kata",
+        "backstage": "📜 Backstage – Command History",
+        "no_commands": "No commands yet. Send a command from the sidebar.",
+        "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
+        "footer_line2": "Built by <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 Simulated robot control – ready for real-world hardware integration.",
+        "speech_failed": "❌ Speech generation failed. Please ensure gTTS is installed.",
+        "speech_warning": "Please enter text to speak.",
+        "action_warning": "Please enter an action or kata name.",
+        "active_kata": "Active Kata",
+        "belt": "Belt",
+        "robot_view": "🖥️ Robot View",
+        "none": "None",
+        "select_kata": "Select Kata",
+        "select_robot": "Select Robot",
+        "language": "🌐 Language",
+        "email": "Email",
+        "phone": "Phone",
+        "website": "Website",
+        "contact_info": "Contact Information",
+        "status_current_robot": "Current Robot:",
+        "status_last_action": "Last Action:",
+        "status_kata": "Kata:",
+        "speaking": "Speaking:",
+        "replay_voice": "🔁 Replay Voice",
+    },
+    "fr": {
+        "app_title": "Centre de Contrôle Robotique",
+        "app_subtitle": "Sélectionnez un robot, commandez-le et regardez-le agir – construit par GlobalInternet.py",
+        "live_sim": "● SIMULATION EN DIRECT",
+        "robot_selection": "🤖 Sélection du robot",
+        "kata_performance": "🥋 Performance Kata",
+        "commands": "🎮 Commandes",
+        "cmd_desc": "Marche et Course en boucle continue. Saut, Salut, Saut périlleux avant, Saut périlleux arrière, Salutation joués une fois.",
+        "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète.",
+        "action_placeholder": "ex: backflip ou Taikyoku Shodan",
+        "execute_action": "▶️ Exécuter l'action",
+        "speech": "🗣️ Parole",
+        "speak_placeholder": "ex: Bonjour, je suis votre robot.",
+        "speak_button": "🔊 Faire parler le robot",
+        "contact": "📞 Contact",
+        "status": "🔧 Statut",
+        "current_robot": "Robot actuel",
+        "last_action": "Dernière action",
+        "kata": "Kata",
+        "backstage": "📜 Coulisses – Historique des commandes",
+        "no_commands": "Aucune commande pour l'instant. Envoyez une commande depuis la barre latérale.",
+        "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
+        "footer_line2": "Construit par <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 Contrôle robotique simulé – prêt pour l'intégration matérielle réelle.",
+        "speech_failed": "❌ Échec de la génération vocale. Veuillez vous assurer que gTTS est installé.",
+        "speech_warning": "Veuillez entrer du texte à prononcer.",
+        "action_warning": "Veuillez entrer une action ou un nom de kata.",
+        "active_kata": "Kata actif",
+        "belt": "Ceinture",
+        "robot_view": "🖥️ Vue du robot",
+        "none": "Aucun",
+        "select_kata": "Sélectionner un kata",
+        "select_robot": "Sélectionner un robot",
+        "language": "🌐 Langue",
+        "email": "Email",
+        "phone": "Téléphone",
+        "website": "Site web",
+        "contact_info": "Coordonnées",
+        "status_current_robot": "Robot actuel :",
+        "status_last_action": "Dernière action :",
+        "status_kata": "Kata :",
+        "speaking": "Parle :",
+        "replay_voice": "🔁 Rejouer la voix",
+    },
+    "es": {
+        "app_title": "Centro de Control Robótico",
+        "app_subtitle": "Seleccione un robot, comándelo y observe su rendimiento – construido por GlobalInternet.py",
+        "live_sim": "● SIMULACIÓN EN VIVO",
+        "robot_selection": "🤖 Selección de robot",
+        "kata_performance": "🥋 Rendimiento Kata",
+        "commands": "🎮 Comandos",
+        "cmd_desc": "Caminar y Correr en bucle continuo. Saltar, Saludar, Mortal hacia adelante, Mortal hacia atrás, Inclinación se ejecutan una vez.",
+        "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa.",
+        "action_placeholder": "ej: backflip o Taikyoku Shodan",
+        "execute_action": "▶️ Ejecutar acción",
+        "speech": "🗣️ Voz",
+        "speak_placeholder": "ej: Hola, soy su robot.",
+        "speak_button": "🔊 Hacer hablar al robot",
+        "contact": "📞 Contacto",
+        "status": "🔧 Estado",
+        "current_robot": "Robot actual",
+        "last_action": "Última acción",
+        "kata": "Kata",
+        "backstage": "📜 Bastidores – Historial de comandos",
+        "no_commands": "Aún no hay comandos. Envíe un comando desde la barra lateral.",
+        "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
+        "footer_line2": "Construido por <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 Control robótico simulado – listo para la integración con hardware real.",
+        "speech_failed": "❌ Error en la generación de voz. Asegúrese de que gTTS esté instalado.",
+        "speech_warning": "Por favor, ingrese texto para hablar.",
+        "action_warning": "Por favor, ingrese una acción o nombre de kata.",
+        "active_kata": "Kata activo",
+        "belt": "Cinturón",
+        "robot_view": "🖥️ Vista del robot",
+        "none": "Ninguno",
+        "select_kata": "Seleccionar Kata",
+        "select_robot": "Seleccionar Robot",
+        "language": "🌐 Idioma",
+        "email": "Correo electrónico",
+        "phone": "Teléfono",
+        "website": "Sitio web",
+        "contact_info": "Información de contacto",
+        "status_current_robot": "Robot actual:",
+        "status_last_action": "Última acción:",
+        "status_kata": "Kata:",
+        "speaking": "Hablando:",
+        "replay_voice": "🔁 Repetir voz",
+    },
+    "pt": {
+        "app_title": "Centro de Controle Robótico",
+        "app_subtitle": "Selecione um robô, comande-o e veja-o atuar – construído por GlobalInternet.py",
+        "live_sim": "● SIMULAÇÃO AO VIVO",
+        "robot_selection": "🤖 Seleção de Robô",
+        "kata_performance": "🥋 Performance Kata",
+        "commands": "🎮 Comandos",
+        "cmd_desc": "Andar e Correr em loop contínuo. Pular, Acenar, Mortal para frente, Mortal para trás, Reverência executados uma vez.",
+        "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa.",
+        "action_placeholder": "ex: backflip ou Taikyoku Shodan",
+        "execute_action": "▶️ Executar Ação",
+        "speech": "🗣️ Fala",
+        "speak_placeholder": "ex: Olá, eu sou o seu robô.",
+        "speak_button": "🔊 Fazer o Robô Falar",
+        "contact": "📞 Contato",
+        "status": "🔧 Status",
+        "current_robot": "Robô atual",
+        "last_action": "Última ação",
+        "kata": "Kata",
+        "backstage": "📜 Bastidores – Histórico de Comandos",
+        "no_commands": "Nenhum comando ainda. Envie um comando pela barra lateral.",
+        "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
+        "footer_line2": "Construído por <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 Controle robótico simulado – pronto para integração com hardware real.",
+        "speech_failed": "❌ Falha na geração de fala. Verifique se o gTTS está instalado.",
+        "speech_warning": "Por favor, insira texto para falar.",
+        "action_warning": "Por favor, insira uma ação ou nome de kata.",
+        "active_kata": "Kata ativo",
+        "belt": "Faixa",
+        "robot_view": "🖥️ Visão do Robô",
+        "none": "Nenhum",
+        "select_kata": "Selecionar Kata",
+        "select_robot": "Selecionar Robô",
+        "language": "🌐 Idioma",
+        "email": "E-mail",
+        "phone": "Telefone",
+        "website": "Site",
+        "contact_info": "Informações de Contato",
+        "status_current_robot": "Robô atual:",
+        "status_last_action": "Última ação:",
+        "status_kata": "Kata:",
+        "speaking": "Falando:",
+        "replay_voice": "🔁 Repetir Voz",
+    },
+    "zh": {
+        "app_title": "机器人控制中心",
+        "app_subtitle": "选择机器人，发出指令，观看表演 – 由 GlobalInternet.py 构建",
+        "live_sim": "● 实时模拟",
+        "robot_selection": "🤖 机器人选择",
+        "kata_performance": "🥋 型 (Kata) 表演",
+        "commands": "🎮 指令",
+        "cmd_desc": "行走和跑步循环持续。跳跃、挥手、前空翻、后空翻、鞠躬各执行一次。",
+        "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列。",
+        "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
+        "execute_action": "▶️ 执行指令",
+        "speech": "🗣️ 语音",
+        "speak_placeholder": "例如：你好，我是你的机器人。",
+        "speak_button": "🔊 让机器人说话",
+        "contact": "📞 联系方式",
+        "status": "🔧 状态",
+        "current_robot": "当前机器人",
+        "last_action": "上次动作",
+        "kata": "型 (Kata)",
+        "backstage": "📜 后台 – 指令历史",
+        "no_commands": "尚无指令。请从侧边栏发送指令。",
+        "footer_line1": "© 2026 GlobalInternet.py 在线软件公司",
+        "footer_line2": "由 <strong>Gesner Deslandes</strong> 构建 | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 模拟机器人控制 – 可集成真实硬件。",
+        "speech_failed": "❌ 语音生成失败。请确保已安装 gTTS。",
+        "speech_warning": "请输入要说的文本。",
+        "action_warning": "请输入动作或型 (Kata) 名称。",
+        "active_kata": "当前型 (Kata)",
+        "belt": "腰带等级",
+        "robot_view": "🖥️ 机器人视图",
+        "none": "无",
+        "select_kata": "选择型 (Kata)",
+        "select_robot": "选择机器人",
+        "language": "🌐 语言",
+        "email": "电子邮件",
+        "phone": "电话",
+        "website": "网站",
+        "contact_info": "联系信息",
+        "status_current_robot": "当前机器人：",
+        "status_last_action": "上次动作：",
+        "status_kata": "型 (Kata)：",
+        "speaking": "正在说话：",
+        "replay_voice": "🔁 重播语音",
+    }
+}
+
+def get_text(key, lang):
+    return TRANSLATIONS.get(lang, TRANSLATIONS["en"]).get(key, key)
+
 try:
     from gtts import gTTS
     VOICE_AVAILABLE = True
@@ -56,7 +292,6 @@ KATAS = {
 }
 
 def get_kata_sequence(kata_name):
-    # Use "frontflip" as the flip in kata sequences
     base = [["bow", 2.0], ["walk", 3.0], ["jump", 1.2], ["wave", 2.0], ["frontflip", 1.5], ["walk", 3.0], ["bow", 2.0]]
     variations = {
         "Taikyoku Shodan": [["idle", 1.0]] + base,
@@ -783,13 +1018,18 @@ if 'last_spoken_timestamp' not in st.session_state:
     st.session_state.last_spoken_timestamp = 0
 if 'kata' not in st.session_state:
     st.session_state.kata = None
+if 'language' not in st.session_state:
+    st.session_state.language = "en"
 
 # ========== HEADER ==========
-st.markdown("""
+lang = st.session_state.language
+t = lambda key: get_text(key, lang)
+
+st.markdown(f"""
 <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #2a3a5a; margin-bottom: 30px;">
-    <h1 style="color: #00d4ff; font-size: 2.8rem; margin: 0; text-shadow: 0 0 30px rgba(0,212,255,0.2);">🤖 Robotic Control Center</h1>
-    <p style="color: #8899bb; font-size: 1.1rem;">Select a robot, command it, and watch it perform – built by GlobalInternet.py</p>
-    <span style="display: inline-block; background: #00ff64; color: #0a0a0f; padding: 4px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; animation: pulse 2s infinite;">● LIVE SIMULATION</span>
+    <h1 style="color: #00d4ff; font-size: 2.8rem; margin: 0; text-shadow: 0 0 30px rgba(0,212,255,0.2);">🤖 {t('app_title')}</h1>
+    <p style="color: #8899bb; font-size: 1.1rem;">{t('app_subtitle')}</p>
+    <span style="display: inline-block; background: #00ff64; color: #0a0a0f; padding: 4px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; animation: pulse 2s infinite;">{t('live_sim')}</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -805,10 +1045,24 @@ with st.sidebar:
     """, unsafe_allow_html=True)
 
     st.markdown("---")
+    
+    # Language selector
+    lang_choice = st.selectbox(
+        t('language'),
+        options=list(LANGUAGES.keys()),
+        format_func=lambda x: LANGUAGES[x],
+        index=list(LANGUAGES.keys()).index(st.session_state.language),
+        key="lang_select"
+    )
+    if lang_choice != st.session_state.language:
+        st.session_state.language = lang_choice
+        st.rerun()
 
-    st.markdown("### 🤖 Robot Selection")
+    st.markdown("---")
+
+    st.markdown(f"### {t('robot_selection')}")
     robot_names = list(ROBOTS.keys())
-    selected = st.selectbox("Select Robot", options=robot_names,
+    selected = st.selectbox(t('select_robot'), options=robot_names,
                             index=robot_names.index(st.session_state.robot_selected),
                             key="robot_select")
     if selected != st.session_state.robot_selected:
@@ -827,9 +1081,9 @@ with st.sidebar:
 
     st.markdown("---")
 
-    st.markdown("### 🥋 Kata Performance")
+    st.markdown(f"### {t('kata_performance')}")
     kata_names = list(KATAS.keys())
-    kata_selected = st.selectbox("Select Kata", options=["None"] + kata_names,
+    kata_selected = st.selectbox(t('select_kata'), options=["None"] + kata_names,
                                  index=0 if st.session_state.kata is None else kata_names.index(st.session_state.kata) + 1,
                                  key="kata_select")
     if kata_selected == "None":
@@ -847,22 +1101,21 @@ with st.sidebar:
         kata_info = KATAS[st.session_state.kata]
         st.markdown(f"""
         <div style="background: rgba(0,212,255,0.05); border: 1px solid #00d4ff; border-radius: 8px; padding: 8px 12px; margin-top: 5px;">
-            <span style="color: #8899bb; font-size: 0.8rem;">Active Kata</span><br>
+            <span style="color: #8899bb; font-size: 0.8rem;">{t('active_kata')}</span><br>
             <span style="color: #00d4ff; font-weight: 600;">{st.session_state.kata}</span><br>
-            <span style="color: #8899bb; font-size: 0.8rem;">Belt: {kata_info['belt_rank']}</span>
+            <span style="color: #8899bb; font-size: 0.8rem;">{t('belt')}: {kata_info['belt_rank']}</span>
         </div>
         """, unsafe_allow_html=True)
 
     st.markdown("---")
 
-    st.markdown("### 🎮 Commands")
-    st.markdown("*Walk and Run loop continuously. Jump, Wave, Frontflip, Backflip, Bow play once.*")
-    st.markdown("*You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.*")
-    action_input = st.text_input("Action or Kata", key="action_input",
-                                 placeholder="e.g., backflip or Taikyoku Shodan")
-    if st.button("▶️ Execute Action", use_container_width=True):
+    st.markdown(f"### {t('commands')}")
+    st.markdown(f"*{t('cmd_desc')}*")
+    st.markdown(f"*{t('cmd_hint')}*")
+    action_input = st.text_input("", key="action_input",
+                                 placeholder=t('action_placeholder'))
+    if st.button(t('execute_action'), use_container_width=True):
         if action_input.strip():
-            # Check if input matches a kata name (case-insensitive)
             kata_name_match = None
             for k in KATAS.keys():
                 if k.lower() == action_input.strip().lower():
@@ -874,53 +1127,52 @@ with st.sidebar:
                 st.session_state.last_action = f"Kata: {kata_name_match}"
                 st.rerun()
             else:
-                # Treat as single command
                 st.session_state.kata = None
                 st.session_state.command = action_input.strip()
                 st.session_state.last_action = action_input.strip().lower()
                 st.rerun()
         else:
-            st.warning("Please enter an action or kata name.")
+            st.warning(t('action_warning'))
 
     st.markdown("---")
-    st.markdown("### 🗣️ Speech")
-    speak_input = st.text_input("Speak (text)", key="speak_input", placeholder="e.g., Hello, I am your robot.")
-    if st.button("🔊 Make Robot Speak", use_container_width=True):
+    st.markdown(f"### {t('speech')}")
+    speak_input = st.text_input("", key="speak_input", placeholder=t('speak_placeholder'))
+    if st.button(t('speak_button'), use_container_width=True):
         if speak_input.strip():
             st.session_state.speak_text = speak_input.strip()
-            audio_bytes = generate_audio(speak_input.strip(), "en")
+            audio_bytes = generate_audio(speak_input.strip(), lang)
             if audio_bytes:
                 st.session_state.last_spoken_text = speak_input.strip()
                 st.session_state.last_spoken_audio = audio_bytes
                 st.session_state.last_spoken_timestamp = time.time()
                 st.rerun()
             else:
-                st.error("❌ Speech generation failed. Please ensure gTTS is installed.")
+                st.error(t('speech_failed'))
         else:
-            st.warning("Please enter text to speak.")
+            st.warning(t('speech_warning'))
 
     st.markdown("---")
-    st.markdown("### 📞 Contact")
-    st.markdown("""
+    st.markdown(f"### {t('contact')}")
+    st.markdown(f"""
     <div style="background: rgba(20,30,50,0.8); border: 1px solid #2a3a5a; border-radius: 8px; padding: 12px; font-size: 0.85rem; color: #8899bb;">
-        <strong style="color: #00d4ff;">Email:</strong> deslandes78@gmail.com<br>
-        <strong style="color: #00d4ff;">Phone:</strong> (509) 4738-5663<br>
-        <strong style="color: #00d4ff;">Website:</strong> <a href="https://globalinternetsitepy-abh7v6tnmskxxnuplrdcgk.streamlit.app/" style="color: #00d4ff;" target="_blank">globalinternet-py.com</a>
+        <strong style="color: #00d4ff;">{t('email')}:</strong> deslandes78@gmail.com<br>
+        <strong style="color: #00d4ff;">{t('phone')}:</strong> (509) 4738-5663<br>
+        <strong style="color: #00d4ff;">{t('website')}:</strong> <a href="https://globalinternetsitepy-abh7v6tnmskxxnuplrdcgk.streamlit.app/" style="color: #00d4ff;" target="_blank">globalinternet-py.com</a>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("### 🔧 Status")
-    st.markdown(f"**Current Robot:** {st.session_state.robot_selected}")
-    st.markdown(f"**Last Action:** {st.session_state.last_action}")
+    st.markdown(f"### {t('status')}")
+    st.markdown(f"**{t('current_robot')}:** {st.session_state.robot_selected}")
+    st.markdown(f"**{t('last_action')}:** {st.session_state.last_action}")
     if st.session_state.kata:
-        st.markdown(f"**Kata:** {st.session_state.kata}")
+        st.markdown(f"**{t('kata')}:** {st.session_state.kata}")
 
 # ========== MAIN CONTENT ==========
 col_view, col_info = st.columns([3, 1])
 
 with col_view:
-    st.markdown("### 🖥️ Robot View")
+    st.markdown(f"### {t('robot_view')}")
     viewer_html = get_robot_viewer_html(
         st.session_state.robot_selected,
         st.session_state.command if st.session_state.kata is None else "",
@@ -933,14 +1185,14 @@ with col_view:
 with col_info:
     st.markdown(f"""
     <div class="status-panel">
-        <div class="label">Current Robot</div>
+        <div class="label">{t('current_robot')}</div>
         <div class="value">{st.session_state.robot_selected}</div>
     </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
     <div class="status-panel">
-        <div class="label">Last Action</div>
+        <div class="label">{t('last_action')}</div>
         <div class="value">{st.session_state.last_action if st.session_state.last_action != "idle" else "—"}</div>
     </div>
     """, unsafe_allow_html=True)
@@ -948,18 +1200,18 @@ with col_info:
     if st.session_state.kata:
         st.markdown(f"""
         <div class="status-panel" style="border-color: #ffaa00;">
-            <div class="label">Kata</div>
+            <div class="label">{t('kata')}</div>
             <div class="value" style="color: #ffaa00;">{st.session_state.kata}</div>
         </div>
         """, unsafe_allow_html=True)
 
     if st.session_state.last_spoken_audio and st.session_state.last_spoken_timestamp > 0:
         st.audio(st.session_state.last_spoken_audio, format="audio/mp3", autoplay=True)
-        st.caption(f"🔊 Speaking: {st.session_state.last_spoken_text[:50]}...")
-        if st.button("🔁 Replay Voice"):
+        st.caption(f"🔊 {t('speaking')} {st.session_state.last_spoken_text[:50]}...")
+        if st.button(t('replay_voice')):
             st.rerun()
 
-    with st.expander("📜 Backstage – Command History", expanded=False):
+    with st.expander(t('backstage'), expanded=False):
         if st.session_state.history:
             for cmd, status in reversed(st.session_state.history[-10:]):
                 st.markdown(f"""
@@ -969,7 +1221,7 @@ with col_info:
                 </div>
                 """, unsafe_allow_html=True)
         else:
-            st.info("No commands yet. Send a command from the sidebar.")
+            st.info(t('no_commands'))
 
 # ---------- Speak history ----------
 if st.session_state.last_spoken_text and st.session_state.last_spoken_audio:
@@ -979,10 +1231,10 @@ if st.session_state.last_spoken_text and st.session_state.last_spoken_audio:
             st.session_state.history = st.session_state.history[-20:]
 
 # ========== FOOTER ==========
-st.markdown("""
+st.markdown(f"""
 <div class="footer">
-    <p>© 2026 GlobalInternet.py Online Software Company</p>
-    <p>Built by <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com</p>
-    <p style="font-size:0.8rem; color:#445566;">🤖 Simulated robot control – ready for real-world hardware integration.</p>
+    <p>{t('footer_line1')}</p>
+    <p>{t('footer_line2')}</p>
+    <p style="font-size:0.8rem; color:#445566;">{t('footer_line3')}</p>
 </div>
 """, unsafe_allow_html=True)
