@@ -22,7 +22,7 @@ LANGUAGES = {
     "zh": "中文 (Chinese)"
 }
 
-# Translation dictionary (full – only English shown here, but final file includes all languages)
+# ---- Translations (full) ----
 TRANSLATIONS = {
     "en": {
         "app_title": "Robotic Control Center",
@@ -612,7 +612,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const robotGroup = new THREE.Group();
         robotGroup.position.y = 0.5;
 
-        // Materials (as before)
+        // Materials
         const mainMat = new THREE.MeshStandardMaterial({{ color: '{main_color}', roughness: 0.4, metalness: 0.6 }});
         const accentMat = new THREE.MeshStandardMaterial({{ color: '{accent_color}', roughness: 0.3, metalness: 0.5 }});
         const darkMat = new THREE.MeshStandardMaterial({{ color: '#333333', roughness: 0.5, metalness: 0.4 }});
@@ -868,8 +868,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             soccerBall.material.map = tex;
             soccerBall.material.needsUpdate = true;
         }})();
-        // Ball position: on the ground (grid at y=-0.5), between feet, in front (z=0.5)
-        // Center of ball at y = -0.5 + radius (0.2) = -0.3 world. Relative to robotGroup (y=0.5) -> -0.8
+        // Ball on the ground: y = -0.8 relative to robotGroup (world y = -0.3)
+        // which places its bottom on the grid at y = -0.5
         const ballBasePos = new THREE.Vector3(0, -0.8, 0.5);
         soccerBall.position.copy(ballBasePos);
         robotGroup.add(soccerBall);
@@ -893,7 +893,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             kataSeq: {kata_sequence_json},
             initCmd: '{anim_cmd}',
             validCmds: {json.dumps(valid_commands)},
-            // Soccer simplified
+            // Soccer
             soccerActive: false,
             soccerTimer: 0,
             soccerDuration: 10.0,
@@ -984,7 +984,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                     updateStepInfo();
                     return;
                 }}
-                // Robot runs
+                // Force robot to run
                 state.cmd = 'run';
                 state.looping = true;
                 state.animating = true;
@@ -1004,6 +1004,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             // Normal commands
             if (state.cmd === 'idle') {{
                 state.animating = false; state.looping = false; state.bowActive = false;
+                // Reset ball to base position (on ground)
                 soccerBall.position.copy(ballBasePos);
                 return;
             }}
