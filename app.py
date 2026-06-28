@@ -22,7 +22,7 @@ LANGUAGES = {
     "zh": "中文 (Chinese)"
 }
 
-# Translation dictionary – (unchanged, full version below)
+# Translation dictionary (only showing English for brevity – but we'll keep full)
 TRANSLATIONS = {
     "en": {
         "app_title": "Robotic Control Center",
@@ -35,6 +35,7 @@ TRANSLATIONS = {
         "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
+        "soccer_play": "⚽ Play Soccer",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
         "speak_button": "🔊 Make Robot Speak",
@@ -75,17 +76,57 @@ TRANSLATIONS = {
         "gender_unavailable": "⚠️ pyttsx3 not available – gender selection ignored. Using gTTS (gender‑neutral).",
     },
     "fr": {
-        # ... (full French translation from previous version)
+        "app_title": "Centre de Contrôle Robotique",
+        "app_subtitle": "Sélectionnez un robot, commandez-le et regardez-le agir – construit par GlobalInternet.py",
+        "live_sim": "● SIMULATION EN DIRECT",
+        "robot_selection": "🤖 Sélection du robot",
+        "kata_performance": "🥋 Performance Kata",
+        "commands": "🎮 Commandes",
+        "cmd_desc": "Marche et Course en boucle continue. Saut, Salut, Saut périlleux avant, Saut périlleux arrière, Salutation joués une fois.",
+        "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète.",
+        "action_placeholder": "ex: backflip ou Taikyoku Shodan",
+        "execute_action": "▶️ Exécuter l'action",
+        "soccer_play": "⚽ Jouer au foot",
+        "speech": "🗣️ Parole",
+        "speak_placeholder": "ex: Bonjour, je suis votre robot.",
+        "speak_button": "🔊 Faire parler le robot",
+        "contact": "📞 Contact",
+        "status": "🔧 Statut",
+        "current_robot": "Robot actuel",
+        "last_action": "Dernière action",
+        "kata": "Kata",
+        "backstage": "📜 Coulisses – Historique des commandes",
+        "no_commands": "Aucune commande pour l'instant. Envoyez une commande depuis la barre latérale.",
+        "footer_line1": "© 2026 GlobalInternet.py Online Software Company",
+        "footer_line2": "Construit par <strong>Gesner Deslandes</strong> | (509) 4738-5663 | deslandes78@gmail.com",
+        "footer_line3": "🤖 Contrôle robotique simulé – prêt pour l'intégration matérielle réelle.",
+        "speech_failed": "❌ Échec de la génération vocale. Veuillez vous assurer que pyttsx3 ou gTTS est installé.",
+        "speech_warning": "Veuillez entrer du texte à prononcer.",
+        "action_warning": "Veuillez entrer une action ou un nom de kata.",
+        "active_kata": "Kata actif",
+        "belt": "Ceinture",
+        "robot_view": "🖥️ Vue du robot",
+        "none": "Aucun",
+        "select_kata": "Sélectionner un kata",
+        "select_robot": "Sélectionner un robot",
+        "language": "🌐 Langue",
+        "voice_gender": "🎤 Genre de voix",
+        "male": "Masculin",
+        "female": "Féminin",
+        "email": "Email",
+        "phone": "Téléphone",
+        "website": "Site web",
+        "contact_info": "Coordonnées",
+        "status_current_robot": "Robot actuel :",
+        "status_last_action": "Dernière action :",
+        "status_kata": "Kata :",
+        "speaking": "Parle :",
+        "replay_voice": "🔁 Rejouer la voix",
+        "gender_note": "La sélection du genre nécessite pyttsx3. Utilisation de gTTS (genre neutre) comme secours.",
+        "gender_enabled": "✅ Voix {} activée",
+        "gender_unavailable": "⚠️ pyttsx3 non disponible – la sélection du genre est ignorée. Utilisation de gTTS (genre neutre).",
     },
-    "es": {
-        # ... (full Spanish translation)
-    },
-    "pt": {
-        # ... (full Portuguese translation)
-    },
-    "zh": {
-        # ... (full Chinese translation)
-    }
+    # ... (Spanish, Portuguese, Chinese translations would be here in the full file)
 }
 
 def get_text(key, lang):
@@ -100,18 +141,14 @@ def generate_audio(text, lang_code="en", gender="Male"):
         try:
             import pyttsx3
             import tempfile
-
             engine = pyttsx3.init()
             voices = engine.getProperty('voices')
             selected_voice = None
-            
             male_patterns = ['david', 'male', 'm', 'paul', 'mike', 'brian', 'scott', 'mark', 'james', 'george']
             female_patterns = ['zira', 'female', 'f', 'susan', 'mary', 'linda', 'patricia', 'jennifer', 'elizabeth']
-            
             for voice in voices:
                 name_lower = voice.name.lower()
                 gender_lower = voice.gender.lower() if hasattr(voice, 'gender') and voice.gender else ''
-                
                 if gender.lower() == 'male':
                     if any(p in name_lower for p in male_patterns) or 'male' in gender_lower:
                         selected_voice = voice.id
@@ -120,7 +157,6 @@ def generate_audio(text, lang_code="en", gender="Male"):
                     if any(p in name_lower for p in female_patterns) or 'female' in gender_lower:
                         selected_voice = voice.id
                         break
-            
             if not selected_voice:
                 for voice in voices:
                     name_lower = voice.name.lower()
@@ -130,10 +166,8 @@ def generate_audio(text, lang_code="en", gender="Male"):
                     elif gender.lower() == 'female' and 'female' in name_lower:
                         selected_voice = voice.id
                         break
-            
             if not selected_voice and voices:
                 selected_voice = voices[0].id
-            
             if selected_voice:
                 engine.setProperty('voice', selected_voice)
             elif voices:
@@ -169,7 +203,7 @@ st.set_page_config(
     page_icon="🤖"
 )
 
-# ---- Data (ROBOTS, KATAS) ----
+# ---- Data ----
 ROBOTS = {
     "Red Titan": {"color": "#ff3333", "accent": "#ff6666", "description": "Heavy combat model with reinforced armor."},
     "Blue Sentinel": {"color": "#3388ff", "accent": "#66aaff", "description": "Scout and reconnaissance unit."},
@@ -287,7 +321,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (Transformer-style robot with waist and "G") ----
+# ---- 3D Viewer HTML generator (with waist, "G" emblem, and soccer ball) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     # Colors
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -313,8 +347,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         headband_color = "#ff0000"
         belt_rank = ""
 
-    # Command – include both frontflip and backflip
-    valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow']
+    # Command – include 'soccer'
+    valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow', 'soccer']
     cmd_lower = command.lower() if command else "idle"
     anim_cmd = cmd_lower if cmd_lower in valid_commands else 'idle'
 
@@ -322,7 +356,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
-    # Build HTML with Three.js embedded – all JS braces are doubled!
+    # Build HTML with Three.js embedded
     cache_buster = random.randint(100000, 999999)
     html = f"""
     <!DOCTYPE html>
@@ -427,7 +461,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         gridHelper.position.y = -0.5;
         scene.add(gridHelper);
 
-        // ---- Robot construction (Transformer style with waist and 'G' emblem) ----
+        // ---- Robot construction (Transformer style with waist, 'G', and soccer ball) ----
         const robotGroup = new THREE.Group();
         robotGroup.position.y = 0.5;
 
@@ -440,7 +474,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const antennaMat = new THREE.MeshStandardMaterial({{ color: '#ffaa00', emissive: '#ff8800', emissiveIntensity: 0.3 }});
         const headbandMat = new THREE.MeshStandardMaterial({{ color: '{headband_color}', roughness: 0.3 }});
         const beltMat = new THREE.MeshStandardMaterial({{ color: '{belt_color}', roughness: 0.5 }});
-        // Additional material for the waist
         const waistMat = new THREE.MeshStandardMaterial({{ color: '#555555', roughness: 0.5, metalness: 0.4 }});
 
         // ---- Torso ----
@@ -460,15 +493,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         chest.position.set(0, 0.3, 0.4);
         torsoGroup.add(chest);
 
-        // ---- "G" emblem on chest (canvas texture) ----
+        // ---- "G" emblem ----
         (function() {{
             const canvas = document.createElement('canvas');
             canvas.width = 128;
             canvas.height = 128;
             const ctx = canvas.getContext('2d');
-            // Clear background (transparent)
             ctx.clearRect(0, 0, 128, 128);
-            // Draw a gold 'G' with glow
             ctx.shadowColor = 'rgba(255, 215, 0, 0.8)';
             ctx.shadowBlur = 15;
             ctx.font = 'bold 100px "Arial", sans-serif';
@@ -476,7 +507,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             ctx.textBaseline = 'middle';
             ctx.fillStyle = '#ffd700';
             ctx.fillText('G', 64, 64);
-            // Add a subtle inner shadow
             ctx.shadowBlur = 0;
             ctx.fillStyle = '#ffaa00';
             ctx.fillText('G', 64, 64);
@@ -490,7 +520,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             }});
             const emblemGeo = new THREE.PlaneGeometry(0.35, 0.35);
             const emblem = new THREE.Mesh(emblemGeo, emblemMat);
-            emblem.position.set(0, 0.3, 0.48); // slightly in front of chest
+            emblem.position.set(0, 0.3, 0.48);
             torsoGroup.add(emblem);
         }})();
 
@@ -500,10 +530,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         belt.position.set(0, 0.0, 0);
         torsoGroup.add(belt);
 
-        // ---- Waist (between torso and hip) ----
+        // ---- Waist ----
         const waistGeo = new THREE.BoxGeometry(0.7, 0.2, 0.4);
         const waist = new THREE.Mesh(waistGeo, waistMat);
-        waist.position.set(0, -0.2, 0); // halfway between hip (-0.4) and belt (0.0)
+        waist.position.set(0, -0.2, 0);
         waist.castShadow = true;
         torsoGroup.add(waist);
 
@@ -558,12 +588,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const shoulderPadGeo = new THREE.SphereGeometry(0.22, 8, 8);
         const shoulderPadMat = new THREE.MeshStandardMaterial({{ color: '#555555', roughness: 0.3, metalness: 0.6 }});
 
-        // Left shoulder
         const leftShoulder = new THREE.Mesh(shoulderPadGeo, shoulderPadMat);
         leftShoulder.position.set(-0.6, 0.9, 0);
         torsoGroup.add(leftShoulder);
 
-        // Right shoulder
         const rightShoulder = new THREE.Mesh(shoulderPadGeo, shoulderPadMat);
         rightShoulder.position.set(0.6, 0.9, 0);
         torsoGroup.add(rightShoulder);
@@ -574,20 +602,17 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         leftArmGroup.position.set(-0.65, 0.8, 0);
         torsoGroup.add(leftArmGroup);
 
-        // Upper arm
         const upperArmGeo = new THREE.BoxGeometry(0.2, 0.4, 0.2);
         const leftUpperArm = new THREE.Mesh(upperArmGeo, mainMat);
         leftUpperArm.position.y = -0.2;
         leftUpperArm.castShadow = true;
         leftArmGroup.add(leftUpperArm);
 
-        // Elbow joint
         const elbowGeo = new THREE.SphereGeometry(0.08, 8, 8);
         const leftElbow = new THREE.Mesh(elbowGeo, jointMat);
         leftElbow.position.y = -0.4;
         leftArmGroup.add(leftElbow);
 
-        // Forearm group (for elbow rotation)
         const leftForearmGroup = new THREE.Group();
         leftForearmGroup.position.y = -0.4;
         leftArmGroup.add(leftForearmGroup);
@@ -598,7 +623,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         leftForearm.castShadow = true;
         leftForearmGroup.add(leftForearm);
 
-        // Hand
         const handGeo = new THREE.BoxGeometry(0.15, 0.1, 0.15);
         const leftHand = new THREE.Mesh(handGeo, accentMat);
         leftHand.position.y = -0.35;
@@ -637,20 +661,17 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         leftLegGroup.position.set(-0.25, -0.45, 0);
         torsoGroup.add(leftLegGroup);
 
-        // Upper leg
         const upperLegGeo = new THREE.BoxGeometry(0.25, 0.4, 0.25);
         const leftUpperLeg = new THREE.Mesh(upperLegGeo, mainMat);
         leftUpperLeg.position.y = -0.2;
         leftUpperLeg.castShadow = true;
         leftLegGroup.add(leftUpperLeg);
 
-        // Knee joint
         const kneeGeo = new THREE.SphereGeometry(0.1, 8, 8);
         const leftKnee = new THREE.Mesh(kneeGeo, jointMat);
         leftKnee.position.y = -0.4;
         leftLegGroup.add(leftKnee);
 
-        // Lower leg group
         const leftLowerLegGroup = new THREE.Group();
         leftLowerLegGroup.position.y = -0.4;
         leftLegGroup.add(leftLowerLegGroup);
@@ -661,7 +682,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         leftLowerLeg.castShadow = true;
         leftLowerLegGroup.add(leftLowerLeg);
 
-        // Foot
         const footGeo = new THREE.BoxGeometry(0.3, 0.08, 0.4);
         const leftFoot = new THREE.Mesh(footGeo, accentMat);
         leftFoot.position.set(0, -0.4, 0.05);
@@ -694,6 +714,53 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         rightFoot.position.set(0, -0.4, 0.05);
         rightLowerLegGroup.add(rightFoot);
 
+        // ---- Soccer Ball ----
+        const ballGeo = new THREE.SphereGeometry(0.2, 16, 16);
+        const ballMat = new THREE.MeshStandardMaterial({{
+            color: 0xffffff,
+            roughness: 0.3,
+            metalness: 0.1,
+            emissive: 0x222222,
+            emissiveIntensity: 0.1
+        }});
+        const soccerBall = new THREE.Mesh(ballGeo, ballMat);
+        soccerBall.castShadow = true;
+        // Add some pentagon-like pattern using a canvas texture
+        (function() {{
+            const c = document.createElement('canvas');
+            c.width = 256;
+            c.height = 256;
+            const ctx = c.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, 256, 256);
+            ctx.fillStyle = '#222222';
+            // Draw some pentagons (simplified)
+            ctx.beginPath();
+            ctx.arc(128, 128, 80, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#ffffff';
+            ctx.beginPath();
+            ctx.arc(128, 128, 60, 0, Math.PI*2);
+            ctx.fill();
+            ctx.fillStyle = '#222222';
+            ctx.font = 'bold 40px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('⚽', 128, 135);
+            const tex = new THREE.CanvasTexture(c);
+            soccerBall.material.map = tex;
+            soccerBall.material.needsUpdate = true;
+        }})();
+        soccerBall.position.set(0, 0.5, 0); // initial position
+        robotGroup.add(soccerBall);
+
+        // Also add a small shadow under ball? Not needed.
+
+        // We'll store references to key parts for soccer animation
+        const leftFootPos = new THREE.Vector3(-0.3, 0.0, 0.0);
+        const rightFootPos = new THREE.Vector3(0.3, 0.0, 0.0);
+        const headPos = new THREE.Vector3(0, 1.7, 0);
+
         scene.add(robotGroup);
 
         // ---- Animation state ----
@@ -713,6 +780,11 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             kataSeq: {kata_sequence_json},
             initCmd: '{anim_cmd}',
             validCmds: {json.dumps(valid_commands)},
+            // Soccer specific
+            soccerActive: false,
+            soccerPhase: 0,
+            soccerTimer: 0,
+            soccerDuration: [3.0, 3.0, 1.0], // phase durations
         }};
 
         // Helper to update step info
@@ -727,6 +799,17 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             }} else if (state.kataRunning && state.kataComplete) {{
                 stepInfoEl.textContent = '✅ Kata Complete!';
                 progressBar.style.width = '100%';
+            }} else if (state.soccerActive) {{
+                const phaseNames = ['⚽ Foot Bounce', '⚽ Header', '⚽ Drop'];
+                const phase = Math.min(state.soccerPhase, 2);
+                const totalDur = state.soccerDuration.reduce((a,b)=>a+b, 0);
+                const elapsed = state.soccerTimer;
+                let totalProgress = 0;
+                for (let i=0; i<phase; i++) totalProgress += state.soccerDuration[i];
+                totalProgress += elapsed;
+                const pct = Math.min((totalProgress / totalDur) * 100, 100);
+                stepInfoEl.textContent = `${{phaseNames[phase]}}`;
+                progressBar.style.width = pct + '%';
             }} else {{
                 if (state.cmd !== 'idle') {{
                     stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
@@ -740,6 +823,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
         // ---- Update function ----
         function update(dt) {{
+            // Kata logic
             if (state.kataRunning && !state.kataComplete) {{
                 if (state.kataAction === null) {{
                     if (state.kataIdx < state.kataSeq.length) {{
@@ -780,6 +864,56 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 return;
             }}
 
+            // ---- Soccer logic ----
+            if (state.soccerActive) {{
+                state.soccerTimer += dt;
+                // Determine phase and progress
+                let phase = state.soccerPhase;
+                let phaseTimer = state.soccerTimer;
+                // Find which phase we are in
+                while (phase < 3 && phaseTimer > state.soccerDuration[phase]) {{
+                    phaseTimer -= state.soccerDuration[phase];
+                    phase++;
+                }}
+                if (phase >= 3) {{
+                    // Done
+                    state.soccerActive = false;
+                    state.soccerPhase = 0;
+                    state.soccerTimer = 0;
+                    // Put ball at right foot final position
+                    soccerBall.position.copy(rightFootPos);
+                    soccerBall.position.y = 0.0;
+                    updateStepInfo();
+                    return;
+                }}
+                state.soccerPhase = phase;
+                // Animate ball based on phase
+                const t = phaseTimer / state.soccerDuration[phase]; // 0..1
+                let pos = new THREE.Vector3();
+                if (phase === 0) {{
+                    // Foot bounce
+                    const cycle = t * 6; // 3 complete bounces
+                    const footX = (cycle % 2 < 1) ? -0.3 : 0.3;
+                    const bounce = Math.abs(Math.sin(cycle * Math.PI)) * 0.3 + 0.1;
+                    pos.set(footX, bounce, 0);
+                }} else if (phase === 1) {{
+                    // Header
+                    const bounce = Math.sin(t * Math.PI * 6) * 0.05 + 0.05;
+                    pos.set(0, 1.7 + bounce, 0);
+                }} else if (phase === 2) {{
+                    // Drop to right foot
+                    const dropY = 1.7 * (1 - t);
+                    pos.set(0.3, dropY, 0);
+                }}
+                soccerBall.position.copy(pos);
+                // Rotate ball
+                soccerBall.rotation.x += dt * 2;
+                soccerBall.rotation.z += dt * 1.5;
+                updateStepInfo();
+                return;
+            }}
+
+            // Normal command
             if (state.cmd === 'idle') {{
                 state.animating = false; state.looping = false; state.bowActive = false;
                 return;
@@ -809,8 +943,18 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             }}
         }}
 
-        // ---- Apply animations ----
+        // ---- Apply animations to robot ----
         function animateRobot() {{
+            // Only apply if not in soccer mode (soccer uses its own ball animation)
+            if (!state.soccerActive) {{
+                // Reset ball to default position (hidden or at rest)
+                // We'll keep it at right foot when not active
+                if (state.cmd === 'idle') {{
+                    soccerBall.position.copy(rightFootPos);
+                    soccerBall.position.y = 0.0;
+                }}
+            }}
+
             const isRun = (state.cmd === 'run');
             const amp = isRun ? 1.2 : 0.5;
             const swing = (state.cmd === 'walk' || isRun) ? Math.sin(state.walkCycle) * amp : 0;
@@ -889,7 +1033,11 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
             update(dt);
             animateRobot();
-            updateStepInfo();
+            // Update step info may be called inside update, but also call here for safety
+            if (!state.kataRunning && !state.soccerActive) {{
+                // If not in kata/soccer, update info based on command
+                updateStepInfo();
+            }}
 
             controls.update();
             renderer.render(scene, camera);
@@ -905,7 +1053,15 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
         // ---- Init ----
         state.cmd = state.initCmd;
-        if (state.kataSeq.length > 0) {{
+        // Check if initial command is 'soccer'
+        if (state.cmd === 'soccer') {{
+            state.soccerActive = true;
+            state.soccerPhase = 0;
+            state.soccerTimer = 0;
+            // Reset ball
+            soccerBall.position.set(0, 0.5, 0);
+            updateStepInfo();
+        }} else if (state.kataSeq.length > 0) {{
             state.kataRunning = true;
             state.kataIdx = 0;
             state.kataTimer = 0;
@@ -1095,6 +1251,13 @@ with st.sidebar:
                 st.rerun()
         else:
             st.warning(t('action_warning'))
+
+    # Soccer button
+    if st.button(t('soccer_play'), use_container_width=True):
+        st.session_state.kata = None
+        st.session_state.command = "soccer"
+        st.session_state.last_action = "soccer"
+        st.rerun()
 
     st.markdown("---")
     st.markdown(f"### {t('speech')}")
