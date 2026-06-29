@@ -473,7 +473,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (foot-to-head bounce) ----
+# ---- 3D Viewer HTML generator (foot-to-head bounce with alternating feet) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster=0):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -965,18 +965,22 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
-            // ---- Soccer / Foot-to-Head Bounce ----
+            // ---- Soccer / Foot-to-Head Bounce (alternating feet) ----
             if (state.soccerMode && state.cmd === 'run') {{
-                // Robot stays in place, ball bounces between feet and head
-                const headHeight = 1.5; // relative to robotGroup (head top ~ 1.5)
+                // Ball bounces between left and right feet, going up to head
+                const headHeight = 1.5; // relative to robotGroup
                 const footHeight = ballBasePos.y; // -0.8
-                // Use walkCycle to drive bounce: sin(walkCycle*2) gives a smooth oscillation
-                const bounce = (Math.sin(state.walkCycle * 2) + 1) / 2; // 0..1
-                const ballY = footHeight + (headHeight - footHeight) * bounce;
-                // Slight side-to-side
-                const swing = Math.sin(state.walkCycle * 1.5) * 0.1;
-                soccerBall.position.set(swing, ballY, ballBasePos.z);
-                // Rotate ball
+                const horizontalAmp = 0.3; // left/right movement amplitude
+                // phase: walkCycle * 2 gives a full cycle per step, but we want a slower bounce
+                // We'll use walkCycle * 1.5 for a more natural rhythm
+                const phase = state.walkCycle * 1.5;
+                // vertical: use sine squared to get a bounce: 0 at bottom, 1 at top
+                const vertical = Math.sin(phase) * Math.sin(phase); // always positive, 0..1
+                const yPos = footHeight + (headHeight - footHeight) * vertical;
+                // horizontal: alternate left/right using sin(phase)
+                const xPos = horizontalAmp * Math.sin(phase);
+                soccerBall.position.set(xPos, yPos, ballBasePos.z);
+                // Rotate
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
                 updateStepInfo();
