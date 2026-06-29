@@ -987,21 +987,11 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 // Use lookAt to face the direction of motion
                 const target = new THREE.Vector3(x + dx, 0, z + dz);
                 robotGroup.lookAt(target);
-                // Add a slight roll (lean into the turn) – tilt around Z
-                const leanAngle = -0.08 * Math.cos(state.circleAngle);
-                robotGroup.rotation.z = leanAngle;
+                // No leaning – removed for realistic running
 
-                // ---- Ball dribbling (improved) ----
-                // Ball moves side to side between feet with a bounce
-                const dribbleAmplitude = 0.2;
-                const dribbleOffset = dribbleAmplitude * Math.sin(state.walkCycle * 2);
-                const bounceOffset = 0.05 * Math.abs(Math.sin(state.walkCycle * 2));
-                soccerBall.position.set(
-                    ballBasePos.x + dribbleOffset,
-                    ballBasePos.y + bounceOffset,
-                    ballBasePos.z
-                );
-                // Rotate ball
+                // Ball stays at base position (no side swing)
+                soccerBall.position.copy(ballBasePos);
+                // Slight rotation for realism
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
                 updateStepInfo();
@@ -1032,7 +1022,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 robotGroup.position.x = 0;
                 robotGroup.position.z = 0;
                 robotGroup.rotation.y = 0;
-                robotGroup.rotation.z = 0;
                 return;
             }}
             if (state.looping) {{
