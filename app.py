@@ -967,13 +967,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
             // ---- Soccer / Foot-to-Head Bounce (alternating feet) ----
             if (state.soccerMode && state.cmd === 'run') {{
-                // FIX: increment walkCycle to animate the bounce
-                state.walkCycle += dt * 4.0;   // speed of bounce
+                // FIX: increment walkCycle at a realistic running speed
+                state.walkCycle += dt * 10.0;   // increased speed for realistic running
 
                 const headHeight = 1.5; // relative to robotGroup (head top ~ 1.5)
                 const footHeight = ballBasePos.y; // -0.8
-                const horizontalAmp = 0.3;
-                const phase = state.walkCycle * 1.5;
+                const horizontalAmp = 0.35;  // slightly wider for clearer alternation
+                const phase = state.walkCycle;  // one bounce per full leg cycle (two steps)
                 const vertical = Math.sin(phase) * Math.sin(phase); // 0..1
                 const yPos = footHeight + (headHeight - footHeight) * vertical;
                 const xPos = horizontalAmp * Math.sin(phase);
