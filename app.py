@@ -35,7 +35,7 @@ TRANSLATIONS = {
         "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
-        "soccer_play": "⚽ Play Soccer (Circle)",
+        "soccer_play": "⚽ Foot to Head Bounce",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
         "speak_button": "🔊 Make Robot Speak",
@@ -86,7 +86,7 @@ TRANSLATIONS = {
         "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
-        "soccer_play": "⚽ Jouer au foot (cercle)",
+        "soccer_play": "⚽ Rebond pied-tête",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
         "speak_button": "🔊 Faire parler le robot",
@@ -137,7 +137,7 @@ TRANSLATIONS = {
         "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa.",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
-        "soccer_play": "⚽ Jugar al fútbol (círculo)",
+        "soccer_play": "⚽ Rebote pie-cabeza",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
         "speak_button": "🔊 Hacer hablar al robot",
@@ -188,7 +188,7 @@ TRANSLATIONS = {
         "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
-        "soccer_play": "⚽ Jogar futebol (círculo)",
+        "soccer_play": "⚽ Quicar pé-cabeça",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
         "speak_button": "🔊 Fazer o Robô Falar",
@@ -239,7 +239,7 @@ TRANSLATIONS = {
         "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
-        "soccer_play": "⚽ 踢足球（绕圈）",
+        "soccer_play": "⚽ 脚到头颠球",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
         "speak_button": "🔊 让机器人说话",
@@ -473,7 +473,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (robot circles with ball) ----
+# ---- 3D Viewer HTML generator (foot-to-head bounce) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster=0):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -892,10 +892,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             validCmds: {json.dumps(valid_commands)},
             // Soccer mode
             soccerMode: false,
-            // Circle motion
-            circleAngle: 0,
-            circleSpeed: 0.45,
-            circleRadius: 3.5,
         }};
 
         // ---- UI update ----
@@ -912,7 +908,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 progressBar.style.width = '100%';
             }} else {{
                 if (state.soccerMode && state.cmd === 'run') {{
-                    stepInfoEl.textContent = '⚽ Circle Dribble';
+                    stepInfoEl.textContent = '⚽ Foot to Head Bounce';
                     progressBar.style.width = '100%';
                 }} else if (state.cmd !== 'idle') {{
                     stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
@@ -969,19 +965,18 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
-            // ---- Soccer / Circle motion ----
+            // ---- Soccer / Foot-to-Head Bounce ----
             if (state.soccerMode && state.cmd === 'run') {{
-                state.circleAngle += dt * state.circleSpeed;
-                const x = state.circleRadius * Math.cos(state.circleAngle);
-                const z = state.circleRadius * Math.sin(state.circleAngle);
-                robotGroup.position.x = x;
-                robotGroup.position.z = z;
-                const dx = -Math.sin(state.circleAngle);
-                const dz = Math.cos(state.circleAngle);
-                const target = new THREE.Vector3(x + dx, 0, z + dz);
-                robotGroup.lookAt(target);
-                // Ball stays at base position
-                soccerBall.position.copy(ballBasePos);
+                // Robot stays in place, ball bounces between feet and head
+                const headHeight = 1.5; // relative to robotGroup (head top ~ 1.5)
+                const footHeight = ballBasePos.y; // -0.8
+                // Use walkCycle to drive bounce: sin(walkCycle*2) gives a smooth oscillation
+                const bounce = (Math.sin(state.walkCycle * 2) + 1) / 2; // 0..1
+                const ballY = footHeight + (headHeight - footHeight) * bounce;
+                // Slight side-to-side
+                const swing = Math.sin(state.walkCycle * 1.5) * 0.1;
+                soccerBall.position.set(swing, ballY, ballBasePos.z);
+                // Rotate ball
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
                 updateStepInfo();
@@ -990,6 +985,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
             // ---- Ball logic (appears during run) ----
             if (state.cmd === 'run') {{
+                // Normal run: ball on ground jiggles
                 const swing = Math.sin(state.walkCycle) * 0.05;
                 soccerBall.position.set(
                     ballBasePos.x + swing * 0.1,
@@ -1133,7 +1129,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             state.cmd = 'run';
             state.looping = true;
             state.animating = true;
-            state.circleAngle = 0;
             updateStepInfo();
         }} else if (state.kataSeq.length > 0) {{
             state.kataRunning = true;
