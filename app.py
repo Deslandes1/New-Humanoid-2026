@@ -896,8 +896,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             soccerMode: false,
             // Circle motion
             circleAngle: 0,
-            circleSpeed: 0.5,
-            circleRadius: 2.0,
+            circleSpeed: 0.6,
+            circleRadius: 2.2,
         }};
 
         // ---- UI update ----
@@ -981,11 +981,20 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 const z = state.circleRadius * Math.sin(state.circleAngle);
                 robotGroup.position.x = x;
                 robotGroup.position.z = z;
-                // Face direction of motion (tangent)
-                const dirAngle = state.circleAngle + Math.PI/2; // tangent direction
-                robotGroup.rotation.y = dirAngle;
-                // Keep ball jiggling (in soccer mode we want ball at feet, not head)
-                // We'll use the normal run ball logic (ground jiggle)
+                // Compute direction of motion (tangent, normalized)
+                const dx = -Math.sin(state.circleAngle);
+                const dz = Math.cos(state.circleAngle);
+                // Use lookAt to face the direction of motion
+                const target = new THREE.Vector3(x + dx, 0, z + dz);
+                robotGroup.lookAt(target);
+                // Add a slight roll (lean into the turn) – tilt around Z
+                // The sign depends on whether we're turning left or right; we want to lean inward.
+                // For this circle, the center is at (0,0,0), so inward direction is -position.
+                // We'll compute a lean based on the angle.
+                const leanAngle = -0.08 * Math.cos(state.circleAngle); // approximate
+                robotGroup.rotation.z = leanAngle;
+
+                // Keep ball jiggling (in soccer mode we want ball at feet)
                 const swing = Math.sin(state.walkCycle) * 0.05;
                 soccerBall.position.set(
                     ballBasePos.x + swing * 0.1,
@@ -1022,6 +1031,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 robotGroup.position.x = 0;
                 robotGroup.position.z = 0;
                 robotGroup.rotation.y = 0;
+                robotGroup.rotation.z = 0;
                 return;
             }}
             if (state.looping) {{
