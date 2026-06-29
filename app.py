@@ -393,37 +393,69 @@ def get_kata_sequence(kata_name):
     }
     return variations.get(kata_name, base)
 
-# ---- Custom CSS ----
+# ---- Custom CSS - Light Blue Theme ----
 st.markdown("""
 <style>
-    .stApp { background: #0a0a0f; color: #ffffff; }
-    [data-testid="stSidebar"] { background: #0d0d12; border-right: 1px solid #2a2a3a; }
-    [data-testid="stSidebar"] .stMarkdown, [data-testid="stSidebar"] label, [data-testid="stSidebar"] .stCaption { color: #ffffff !important; }
-    h1, h2, h3, h4, h5, h6, p, li, .stMarkdown, .stCaption, label { color: #ffffff !important; }
+    /* Main background and text */
+    .stApp {
+        background: linear-gradient(145deg, #e6f3ff 0%, #cce4f7 100%);
+        color: #1a2a3a;
+    }
+    [data-testid="stSidebar"] {
+        background: #d4e9ff;
+        border-right: 1px solid #a0c4e8;
+    }
+    [data-testid="stSidebar"] .stMarkdown,
+    [data-testid="stSidebar"] label,
+    [data-testid="stSidebar"] .stCaption {
+        color: #1a2a3a !important;
+    }
+    h1, h2, h3, h4, h5, h6, p, li, .stMarkdown, .stCaption, label {
+        color: #1a2a3a !important;
+    }
     .robot-card {
-        background: rgba(20,30,50,0.7);
-        border: 1px solid #2a3a5a;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid #88bce0;
         border-radius: 16px;
         padding: 20px;
         margin: 10px 0;
         text-align: center;
-        backdrop-filter: blur(5px);
+        box-shadow: 0 4px 12px rgba(0,80,160,0.1);
     }
-    .robot-card .robot-name { font-size: 1.4rem; font-weight: 600; color: #00d4ff; }
-    .robot-card .robot-type { font-size: 0.9rem; color: #8899bb; }
-    .footer { text-align: center; padding: 20px 0; border-top: 1px solid #2a3a5a; margin-top: 30px; color: #667799; font-size: 0.9rem; }
+    .robot-card .robot-name {
+        font-size: 1.4rem;
+        font-weight: 600;
+        color: #0066cc;
+    }
+    .robot-card .robot-type {
+        font-size: 0.9rem;
+        color: #2a4a6a;
+    }
+    .footer {
+        text-align: center;
+        padding: 20px 0;
+        border-top: 1px solid #a0c4e8;
+        margin-top: 30px;
+        color: #2a4a6a;
+        font-size: 0.9rem;
+    }
     .stButton>button {
-        background: linear-gradient(135deg, #00d4ff, #0088ff) !important;
-        color: #0a0a0f !important;
+        background: linear-gradient(135deg, #4da6ff, #0066cc) !important;
+        color: #ffffff !important;
         border: none !important;
         border-radius: 8px !important;
         font-weight: 600 !important;
+        box-shadow: 0 2px 8px rgba(0,80,160,0.2);
     }
-    .stButton>button:hover { transform: scale(1.02); box-shadow: 0 0 30px rgba(0,212,255,0.3); }
+    .stButton>button:hover {
+        transform: scale(1.02);
+        box-shadow: 0 4px 20px rgba(0,80,160,0.4);
+    }
     .stTextInput>div>div>input {
-        background-color: #141018 !important;
-        color: #ffffff !important;
-        border: 1px solid #2a3a5a !important;
+        background-color: #ffffff !important;
+        color: #1a2a3a !important;
+        border: 1px solid #88bce0 !important;
         border-radius: 8px !important;
         font-size: 1rem !important;
     }
@@ -432,36 +464,65 @@ st.markdown("""
         height: 120px;
         border-radius: 50%;
         object-fit: cover;
-        border: 2px solid #00d4ff;
+        border: 2px solid #0066cc;
         display: block;
         margin: 0 auto 8px auto;
     }
-    .profile-name { color: #ffffff; text-align: center; margin-top: 8px; margin-bottom: 0; font-size: 1.2rem; }
-    .profile-title { color: #8899bb; text-align: center; font-size: 0.9rem; margin-top: 0; }
+    .profile-name {
+        color: #1a2a3a;
+        text-align: center;
+        margin-top: 8px;
+        margin-bottom: 0;
+        font-size: 1.2rem;
+    }
+    .profile-title {
+        color: #2a4a6a;
+        text-align: center;
+        font-size: 0.9rem;
+        margin-top: 0;
+    }
     .status-panel {
-        background: rgba(20,30,50,0.5);
-        border: 1px solid #2a3a5a;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid #88bce0;
         border-radius: 12px;
         padding: 15px;
         margin-bottom: 15px;
         text-align: center;
+        box-shadow: 0 2px 8px rgba(0,80,160,0.1);
     }
-    .status-panel .label { color: #8899bb; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
-    .status-panel .value { color: #00d4ff; font-size: 1.2rem; font-weight: 600; }
+    .status-panel .label {
+        color: #2a4a6a;
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .status-panel .value {
+        color: #0066cc;
+        font-size: 1.2rem;
+        font-weight: 600;
+    }
     .backstage { margin-top: 20px; }
     .kata-step {
-        background: rgba(0,212,255,0.05);
-        border: 1px solid #00d4ff;
+        background: rgba(255, 255, 255, 0.5);
+        border: 1px solid #0066cc;
         border-radius: 8px;
         padding: 8px 12px;
         margin: 8px 0;
         text-align: center;
     }
-    .kata-step .step-name { color: #00d4ff; font-weight: 600; font-size: 1.1rem; }
-    .kata-step .step-progress { color: #8899bb; font-size: 0.85rem; }
+    .kata-step .step-name {
+        color: #0066cc;
+        font-weight: 600;
+        font-size: 1.1rem;
+    }
+    .kata-step .step-progress {
+        color: #2a4a6a;
+        font-size: 0.85rem;
+    }
     .note {
         font-size: 0.8rem;
-        color: #8899bb;
+        color: #2a4a6a;
         font-style: italic;
         margin-top: 4px;
     }
@@ -469,6 +530,22 @@ st.markdown("""
         padding: 6px 12px;
         margin-top: 4px;
         margin-bottom: 4px;
+    }
+    /* live sim badge */
+    .live-badge {
+        display: inline-block;
+        background: #00cc66;
+        color: #ffffff;
+        padding: 4px 16px;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.6; }
+        100% { opacity: 1; }
     }
 </style>
 """, unsafe_allow_html=True)
@@ -511,26 +588,27 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
     <head>
         <meta charset="utf-8">
         <style>
-            body {{ margin: 0; overflow: hidden; background: #0a0a0f; }}
+            body {{ margin: 0; overflow: hidden; background: #dcebf7; }}
             canvas {{ display: block; }}
-            #info {{ position: absolute; bottom: 20px; left: 20px; color: #8899bb; font-size: 14px; pointer-events: none; z-index: 10; }}
+            #info {{ position: absolute; bottom: 20px; left: 20px; color: #1a2a3a; font-size: 14px; pointer-events: none; z-index: 10; }}
             #step-info {{
                 position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
-                color: #00d4ff; font-size: 20px; font-weight: 600;
-                text-shadow: 0 0 20px rgba(0,212,255,0.3);
-                background: rgba(10,10,15,0.7);
+                color: #0066cc; font-size: 20px; font-weight: 600;
+                text-shadow: 0 0 20px rgba(0,102,204,0.2);
+                background: rgba(255,255,255,0.85);
                 padding: 8px 24px;
                 border-radius: 30px;
-                border: 1px solid #00d4ff;
+                border: 1px solid #88bce0;
                 pointer-events: none;
                 z-index: 10;
                 text-align: center;
+                backdrop-filter: blur(4px);
             }}
             #step-progress {{
                 position: absolute; bottom: 60px; left: 50%; transform: translateX(-50%);
                 width: 60%; max-width: 400px;
                 height: 6px;
-                background: #1a2a3a;
+                background: #b0d0ea;
                 border-radius: 3px;
                 overflow: hidden;
                 pointer-events: none;
@@ -539,7 +617,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             #step-progress-bar {{
                 height: 100%;
                 width: 0%;
-                background: linear-gradient(90deg, #00d4ff, #0088ff);
+                background: linear-gradient(90deg, #4da6ff, #0066cc);
                 border-radius: 3px;
                 transition: width 0.1s;
             }}
@@ -566,7 +644,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
         // ---- Scene setup ----
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a0f);
+        scene.background = new THREE.Color(0xdcebf7);  // light blue
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
         camera.position.set(4, 3, 6);
@@ -585,7 +663,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         controls.update();
 
         // ---- Lights ----
-        const ambient = new THREE.AmbientLight(0x404060);
+        const ambient = new THREE.AmbientLight(0xffffff, 0.7);
         scene.add(ambient);
 
         const dirLight = new THREE.DirectionalLight(0xffffff, 1.5);
@@ -602,7 +680,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         scene.add(rimLight);
 
         // ---- Ground grid ----
-        const gridHelper = new THREE.GridHelper(10, 20, 0x336688, 0x224466);
+        const gridHelper = new THREE.GridHelper(10, 20, 0x336688, 0x4488aa);
         gridHelper.position.y = -0.5;
         scene.add(gridHelper);
 
@@ -1198,10 +1276,10 @@ lang = st.session_state.language
 t = lambda key: get_text(key, lang)
 
 st.markdown(f"""
-<div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #2a3a5a; margin-bottom: 30px;">
-    <h1 style="color: #00d4ff; font-size: 2.8rem; margin: 0; text-shadow: 0 0 30px rgba(0,212,255,0.2);">🤖 {t('app_title')}</h1>
-    <p style="color: #8899bb; font-size: 1.1rem;">{t('app_subtitle')}</p>
-    <span style="display: inline-block; background: #00ff64; color: #0a0a0f; padding: 4px 16px; border-radius: 20px; font-size: 0.8rem; font-weight: bold; animation: pulse 2s infinite;">{t('live_sim')}</span>
+<div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #88bce0; margin-bottom: 30px;">
+    <h1 style="color: #0066cc; font-size: 2.8rem; margin: 0; text-shadow: 0 0 30px rgba(0,102,204,0.15);">🤖 {t('app_title')}</h1>
+    <p style="color: #1a2a3a; font-size: 1.1rem;">{t('app_subtitle')}</p>
+    <span class="live-badge">{t('live_sim')}</span>
 </div>
 """, unsafe_allow_html=True)
 
@@ -1287,10 +1365,10 @@ with st.sidebar:
     if st.session_state.kata:
         kata_info = KATAS[st.session_state.kata]
         st.markdown(f"""
-        <div style="background: rgba(0,212,255,0.05); border: 1px solid #00d4ff; border-radius: 8px; padding: 8px 12px; margin-top: 5px;">
-            <span style="color: #8899bb; font-size: 0.8rem;">{t('active_kata')}</span><br>
-            <span style="color: #00d4ff; font-weight: 600;">{st.session_state.kata}</span><br>
-            <span style="color: #8899bb; font-size: 0.8rem;">{t('belt')}: {kata_info['belt_rank']}</span>
+        <div style="background: rgba(255,255,255,0.5); border: 1px solid #0066cc; border-radius: 8px; padding: 8px 12px; margin-top: 5px;">
+            <span style="color: #1a2a3a; font-size: 0.8rem;">{t('active_kata')}</span><br>
+            <span style="color: #0066cc; font-weight: 600;">{st.session_state.kata}</span><br>
+            <span style="color: #1a2a3a; font-size: 0.8rem;">{t('belt')}: {kata_info['belt_rank']}</span>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1347,10 +1425,10 @@ with st.sidebar:
     st.markdown("---")
     st.markdown(f"### {t('contact')}")
     st.markdown(f"""
-    <div style="background: rgba(20,30,50,0.8); border: 1px solid #2a3a5a; border-radius: 8px; padding: 12px; font-size: 0.85rem; color: #8899bb;">
-        <strong style="color: #00d4ff;">{t('email')}:</strong> deslandes78@gmail.com<br>
-        <strong style="color: #00d4ff;">{t('phone')}:</strong> (509) 4738-5663<br>
-        <strong style="color: #00d4ff;">{t('website')}:</strong> <a href="https://globalinternetsitepy-abh7v6tnmskxxnuplrdcgk.streamlit.app/" style="color: #00d4ff;" target="_blank">globalinternet-py.com</a>
+    <div style="background: rgba(255,255,255,0.6); border: 1px solid #88bce0; border-radius: 8px; padding: 12px; font-size: 0.85rem; color: #1a2a3a;">
+        <strong style="color: #0066cc;">{t('email')}:</strong> deslandes78@gmail.com<br>
+        <strong style="color: #0066cc;">{t('phone')}:</strong> (509) 4738-5663<br>
+        <strong style="color: #0066cc;">{t('website')}:</strong> <a href="https://globalinternetsitepy-abh7v6tnmskxxnuplrdcgk.streamlit.app/" style="color: #0066cc;" target="_blank">globalinternet-py.com</a>
     </div>
     """, unsafe_allow_html=True)
 
@@ -1409,9 +1487,9 @@ with col_info:
         if st.session_state.history:
             for cmd, status in reversed(st.session_state.history[-10:]):
                 st.markdown(f"""
-                <div style="background: rgba(0,212,255,0.05); border-left: 3px solid #00d4ff; padding: 5px 10px; margin: 5px 0; border-radius: 4px;">
-                    <span style="color: #00d4ff;">▶️</span> <span style="color: #ffffff;">{cmd}</span><br>
-                    <span style="color: #8899bb; font-size: 0.8rem;">{status}</span>
+                <div style="background: rgba(255,255,255,0.4); border-left: 3px solid #0066cc; padding: 5px 10px; margin: 5px 0; border-radius: 4px;">
+                    <span style="color: #0066cc;">▶️</span> <span style="color: #1a2a3a;">{cmd}</span><br>
+                    <span style="color: #2a4a6a; font-size: 0.8rem;">{status}</span>
                 </div>
                 """, unsafe_allow_html=True)
         else:
@@ -1429,6 +1507,6 @@ st.markdown(f"""
 <div class="footer">
     <p>{t('footer_line1')}</p>
     <p>{t('footer_line2')}</p>
-    <p style="font-size:0.8rem; color:#445566;">{t('footer_line3')}</p>
+    <p style="font-size:0.8rem; color:#2a4a6a;">{t('footer_line3')}</p>
 </div>
 """, unsafe_allow_html=True)
