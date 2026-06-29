@@ -35,7 +35,7 @@ TRANSLATIONS = {
         "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
-        "soccer_play": "⚽ Foot to Head Bounce",
+        "soccer_play": "⚽ Bounce Ball (Foot to Head)",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
         "speak_button": "🔊 Make Robot Speak",
@@ -86,7 +86,7 @@ TRANSLATIONS = {
         "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
-        "soccer_play": "⚽ Rebond pied-tête",
+        "soccer_play": "⚽ Faire rebondir (pied-tête)",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
         "speak_button": "🔊 Faire parler le robot",
@@ -137,7 +137,7 @@ TRANSLATIONS = {
         "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa.",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
-        "soccer_play": "⚽ Rebote pie-cabeza",
+        "soccer_play": "⚽ Botar (pie-cabeza)",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
         "speak_button": "🔊 Hacer hablar al robot",
@@ -188,7 +188,7 @@ TRANSLATIONS = {
         "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
-        "soccer_play": "⚽ Quicar pé-cabeça",
+        "soccer_play": "⚽ Quicar (pé-cabeça)",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
         "speak_button": "🔊 Fazer o Robô Falar",
@@ -239,7 +239,7 @@ TRANSLATIONS = {
         "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
-        "soccer_play": "⚽ 脚到头颠球",
+        "soccer_play": "⚽ 颠球（脚到头）",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
         "speak_button": "🔊 让机器人说话",
@@ -473,7 +473,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (foot-to-head bounce with alternating feet) ----
+# ---- 3D Viewer HTML generator (foot-to-head bounce) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster=0):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -908,7 +908,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 progressBar.style.width = '100%';
             }} else {{
                 if (state.soccerMode && state.cmd === 'run') {{
-                    stepInfoEl.textContent = '⚽ Foot to Head Bounce';
+                    stepInfoEl.textContent = '⚽ Bouncing (Foot to Head)';
                     progressBar.style.width = '100%';
                 }} else if (state.cmd !== 'idle') {{
                     stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
@@ -967,20 +967,14 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
             // ---- Soccer / Foot-to-Head Bounce (alternating feet) ----
             if (state.soccerMode && state.cmd === 'run') {{
-                // Ball bounces between left and right feet, going up to head
-                const headHeight = 1.5; // relative to robotGroup
+                const headHeight = 1.5; // relative to robotGroup (head top ~ 1.5)
                 const footHeight = ballBasePos.y; // -0.8
-                const horizontalAmp = 0.3; // left/right movement amplitude
-                // phase: walkCycle * 2 gives a full cycle per step, but we want a slower bounce
-                // We'll use walkCycle * 1.5 for a more natural rhythm
+                const horizontalAmp = 0.3;
                 const phase = state.walkCycle * 1.5;
-                // vertical: use sine squared to get a bounce: 0 at bottom, 1 at top
-                const vertical = Math.sin(phase) * Math.sin(phase); // always positive, 0..1
+                const vertical = Math.sin(phase) * Math.sin(phase); // 0..1
                 const yPos = footHeight + (headHeight - footHeight) * vertical;
-                // horizontal: alternate left/right using sin(phase)
                 const xPos = horizontalAmp * Math.sin(phase);
                 soccerBall.position.set(xPos, yPos, ballBasePos.z);
-                // Rotate
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
                 updateStepInfo();
