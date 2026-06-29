@@ -984,7 +984,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 // Face direction of motion (tangent)
                 const dirAngle = state.circleAngle + Math.PI/2; // tangent direction
                 robotGroup.rotation.y = dirAngle;
-                // Keep ball jiggling (if in soccer mode we want ball at feet, not head)
+                // Keep ball jiggling (in soccer mode we want ball at feet, not head)
                 // We'll use the normal run ball logic (ground jiggle)
                 const swing = Math.sin(state.walkCycle) * 0.05;
                 soccerBall.position.set(
