@@ -988,16 +988,20 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 const target = new THREE.Vector3(x + dx, 0, z + dz);
                 robotGroup.lookAt(target);
                 // Add a slight roll (lean into the turn) – tilt around Z
-                const leanAngle = -0.08 * Math.cos(state.circleAngle); // approximate
+                const leanAngle = -0.08 * Math.cos(state.circleAngle);
                 robotGroup.rotation.z = leanAngle;
 
-                // Keep ball jiggling (in soccer mode we want ball at feet)
-                const swing = Math.sin(state.walkCycle) * 0.05;
+                // ---- Ball dribbling (improved) ----
+                // Ball moves side to side between feet with a bounce
+                const dribbleAmplitude = 0.2;
+                const dribbleOffset = dribbleAmplitude * Math.sin(state.walkCycle * 2);
+                const bounceOffset = 0.05 * Math.abs(Math.sin(state.walkCycle * 2));
                 soccerBall.position.set(
-                    ballBasePos.x + swing * 0.1,
-                    ballBasePos.y + Math.abs(Math.sin(state.walkCycle * 2)) * 0.02,
-                    ballBasePos.z + swing * 0.05
+                    ballBasePos.x + dribbleOffset,
+                    ballBasePos.y + bounceOffset,
+                    ballBasePos.z
                 );
+                // Rotate ball
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
                 updateStepInfo();
