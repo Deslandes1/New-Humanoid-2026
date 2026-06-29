@@ -894,7 +894,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             validCmds: {json.dumps(valid_commands)},
             // Soccer mode flag for UI label
             soccerMode: false,
-            // Circle motion – larger radius for realistic look
+            // Circle motion
             circleAngle: 0,
             circleSpeed: 0.45,
             circleRadius: 3.5,
@@ -987,11 +987,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 // Use lookAt to face the direction of motion
                 const target = new THREE.Vector3(x + dx, 0, z + dz);
                 robotGroup.lookAt(target);
-                // No leaning – removed for realistic running
-
-                // Ball stays at base position (no side swing)
+                // No leaning, no side swing – ball stays exactly at base
                 soccerBall.position.copy(ballBasePos);
-                // Slight rotation for realism
+                // Rotate ball for realism
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
                 updateStepInfo();
