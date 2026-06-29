@@ -35,7 +35,7 @@ TRANSLATIONS = {
         "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
-        "soccer_play": "⚽ Play Soccer",
+        "soccer_play": "⚽ Play Soccer (Circle)",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
         "speak_button": "🔊 Make Robot Speak",
@@ -86,7 +86,7 @@ TRANSLATIONS = {
         "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
-        "soccer_play": "⚽ Jouer au foot",
+        "soccer_play": "⚽ Jouer au foot (cercle)",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
         "speak_button": "🔊 Faire parler le robot",
@@ -137,7 +137,7 @@ TRANSLATIONS = {
         "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa.",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
-        "soccer_play": "⚽ Jugar al fútbol",
+        "soccer_play": "⚽ Jugar al fútbol (círculo)",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
         "speak_button": "🔊 Hacer hablar al robot",
@@ -188,7 +188,7 @@ TRANSLATIONS = {
         "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
-        "soccer_play": "⚽ Jogar futebol",
+        "soccer_play": "⚽ Jogar futebol (círculo)",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
         "speak_button": "🔊 Fazer o Robô Falar",
@@ -239,7 +239,7 @@ TRANSLATIONS = {
         "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
-        "soccer_play": "⚽ 踢足球",
+        "soccer_play": "⚽ 踢足球（绕圈）",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
         "speak_button": "🔊 让机器人说话",
@@ -473,7 +473,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (ball appears during run, high head juggling) ----
+# ---- 3D Viewer HTML generator (robot circles with ball) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -612,7 +612,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const robotGroup = new THREE.Group();
         robotGroup.position.y = 0.5;
 
-        // Materials
+        // Materials (same as before)
         const mainMat = new THREE.MeshStandardMaterial({{ color: '{main_color}', roughness: 0.4, metalness: 0.6 }});
         const accentMat = new THREE.MeshStandardMaterial({{ color: '{accent_color}', roughness: 0.3, metalness: 0.5 }});
         const darkMat = new THREE.MeshStandardMaterial({{ color: '#333333', roughness: 0.5, metalness: 0.4 }});
@@ -868,7 +868,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             soccerBall.material.map = tex;
             soccerBall.material.needsUpdate = true;
         }})();
-        // Ball positions
+        // Ball positions (relative to robotGroup)
         const ballBasePos = new THREE.Vector3(0, -0.8, 0.5);   // ground
         soccerBall.position.copy(ballBasePos);
         robotGroup.add(soccerBall);
@@ -894,6 +894,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             validCmds: {json.dumps(valid_commands)},
             // Soccer mode flag for UI label
             soccerMode: false,
+            // Circle motion
+            circleAngle: 0,
+            circleSpeed: 0.5,
+            circleRadius: 2.0,
         }};
 
         // ---- UI update ----
@@ -910,7 +914,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 progressBar.style.width = '100%';
             }} else {{
                 if (state.soccerMode && state.cmd === 'run') {{
-                    stepInfoEl.textContent = '⚽ High Header';
+                    stepInfoEl.textContent = '⚽ Circle Dribble';
                     progressBar.style.width = '100%';
                 }} else if (state.cmd !== 'idle') {{
                     stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
@@ -968,26 +972,42 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 return;
             }}
 
+            // ---- Soccer / Circle motion ----
+            if (state.soccerMode && state.cmd === 'run') {{
+                // Increment angle
+                state.circleAngle += dt * state.circleSpeed;
+                // Compute position on circle
+                const x = state.circleRadius * Math.cos(state.circleAngle);
+                const z = state.circleRadius * Math.sin(state.circleAngle);
+                robotGroup.position.x = x;
+                robotGroup.position.z = z;
+                // Face direction of motion (tangent)
+                const dirAngle = state.circleAngle + Math.PI/2; // tangent direction
+                robotGroup.rotation.y = dirAngle;
+                // Keep ball jiggling (if in soccer mode we want ball at feet, not head)
+                // We'll use the normal run ball logic (ground jiggle)
+                const swing = Math.sin(state.walkCycle) * 0.05;
+                soccerBall.position.set(
+                    ballBasePos.x + swing * 0.1,
+                    ballBasePos.y + Math.abs(Math.sin(state.walkCycle * 2)) * 0.02,
+                    ballBasePos.z + swing * 0.05
+                );
+                soccerBall.rotation.x += dt * 2;
+                soccerBall.rotation.z += dt * 1.5;
+                updateStepInfo();
+                return;
+            }}
+
             // ---- Ball logic (appears during run) ----
-            // Update ball position based on current command
+            // Update ball position based on current command (non-soccer)
             if (state.cmd === 'run') {{
-                // Robot is running
-                if (state.soccerMode) {{
-                    // High header: ball goes very high, touches forehead at lowest
-                    const bounceCenter = 2.75;
-                    const bounceAmp = 1.25;
-                    const bounceHeight = bounceCenter + Math.sin(state.walkCycle * 2) * bounceAmp;
-                    const swing = Math.sin(state.walkCycle * 0.5) * 0.1;
-                    soccerBall.position.set(swing, bounceHeight, 0.45);
-                }} else {{
-                    // Normal run: ball on ground jiggles
-                    const swing = Math.sin(state.walkCycle) * 0.05;
-                    soccerBall.position.set(
-                        ballBasePos.x + swing * 0.1,
-                        ballBasePos.y + Math.abs(Math.sin(state.walkCycle * 2)) * 0.02,
-                        ballBasePos.z + swing * 0.05
-                    );
-                }}
+                // Normal run: ball on ground jiggles
+                const swing = Math.sin(state.walkCycle) * 0.05;
+                soccerBall.position.set(
+                    ballBasePos.x + swing * 0.1,
+                    ballBasePos.y + Math.abs(Math.sin(state.walkCycle * 2)) * 0.02,
+                    ballBasePos.z + swing * 0.05
+                );
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
             }} else {{
@@ -998,6 +1018,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             // ---- Normal commands ----
             if (state.cmd === 'idle') {{
                 state.animating = false; state.looping = false; state.bowActive = false;
+                // Reset robot position to center when idle
+                robotGroup.position.x = 0;
+                robotGroup.position.z = 0;
+                robotGroup.rotation.y = 0;
                 return;
             }}
             if (state.looping) {{
@@ -1039,9 +1063,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             rightLegGroup.rotation.x = 0;
             leftLowerLegGroup.rotation.x = 0;
             rightLowerLegGroup.rotation.x = 0;
-            robotGroup.rotation.x = 0;
-            robotGroup.position.y = 0.5;
-            robotGroup.position.z = 0;
+            // Do NOT reset robotGroup position or rotation here, they are set in update
             torsoGroup.rotation.x = 0;
 
             if (state.cmd === 'walk' || isRun) {{
@@ -1063,6 +1085,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 const t = Math.min(state.animTimer / 1.2, 1);
                 const y = 1.5 * 4 * t * (1 - t);
                 robotGroup.position.y = 0.5 + y;
+            }} else {{
+                // Ensure y is reset if not jumping
+                if (!state.soccerMode) robotGroup.position.y = 0.5;
             }}
 
             if (state.cmd === 'frontflip' && state.animating) {{
@@ -1125,6 +1150,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             state.cmd = 'run';
             state.looping = true;
             state.animating = true;
+            // Initialize circle angle
+            state.circleAngle = 0;
             updateStepInfo();
         }} else if (state.kataSeq.length > 0) {{
             state.kataRunning = true;
