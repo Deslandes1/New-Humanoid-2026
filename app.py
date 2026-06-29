@@ -22,7 +22,7 @@ LANGUAGES = {
     "zh": "中文 (Chinese)"
 }
 
-# ---- Translations (full) ----
+# ---- Translations ----
 TRANSLATIONS = {
     "en": {
         "app_title": "Robotic Control Center",
@@ -474,7 +474,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---- 3D Viewer HTML generator (robot circles with ball) ----
-def get_robot_viewer_html(robot_name, command=None, kata_name=None):
+def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster=0):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
     main_color = color_map.get(robot_name, "#3388ff")
@@ -504,8 +504,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
-
-    cache_buster = random.randint(100000, 999999)
 
     html = f"""
     <!DOCTYPE html>
@@ -612,7 +610,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
         const robotGroup = new THREE.Group();
         robotGroup.position.y = 0.5;
 
-        // Materials (same as before)
+        // Materials
         const mainMat = new THREE.MeshStandardMaterial({{ color: '{main_color}', roughness: 0.4, metalness: 0.6 }});
         const accentMat = new THREE.MeshStandardMaterial({{ color: '{accent_color}', roughness: 0.3, metalness: 0.5 }});
         const darkMat = new THREE.MeshStandardMaterial({{ color: '#333333', roughness: 0.5, metalness: 0.4 }});
@@ -892,7 +890,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             kataSeq: {kata_sequence_json},
             initCmd: '{anim_cmd}',
             validCmds: {json.dumps(valid_commands)},
-            // Soccer mode flag for UI label
+            // Soccer mode
             soccerMode: false,
             // Circle motion
             circleAngle: 0,
@@ -944,7 +942,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                         }} else {{
                             state.cmd = type; state.looping = false; state.animating = true; state.bowActive = false;
                         }}
-                        // If kata step is run, we don't want soccer mode
                         state.soccerMode = false;
                         updateStepInfo();
                     }} else {{
@@ -974,22 +971,17 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
 
             // ---- Soccer / Circle motion ----
             if (state.soccerMode && state.cmd === 'run') {{
-                // Increment angle
                 state.circleAngle += dt * state.circleSpeed;
-                // Compute position on circle
                 const x = state.circleRadius * Math.cos(state.circleAngle);
                 const z = state.circleRadius * Math.sin(state.circleAngle);
                 robotGroup.position.x = x;
                 robotGroup.position.z = z;
-                // Compute direction of motion (tangent, normalized)
                 const dx = -Math.sin(state.circleAngle);
                 const dz = Math.cos(state.circleAngle);
-                // Use lookAt to face the direction of motion
                 const target = new THREE.Vector3(x + dx, 0, z + dz);
                 robotGroup.lookAt(target);
-                // No leaning, no side swing – ball stays exactly at base
+                // Ball stays at base position
                 soccerBall.position.copy(ballBasePos);
-                // Rotate ball for realism
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
                 updateStepInfo();
@@ -997,9 +989,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             }}
 
             // ---- Ball logic (appears during run) ----
-            // Update ball position based on current command (non-soccer)
             if (state.cmd === 'run') {{
-                // Normal run: ball on ground jiggles
                 const swing = Math.sin(state.walkCycle) * 0.05;
                 soccerBall.position.set(
                     ballBasePos.x + swing * 0.1,
@@ -1009,14 +999,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 soccerBall.rotation.x += dt * 2;
                 soccerBall.rotation.z += dt * 1.5;
             }} else {{
-                // Not running: ball stays on ground
                 soccerBall.position.copy(ballBasePos);
             }}
 
             // ---- Normal commands ----
             if (state.cmd === 'idle') {{
                 state.animating = false; state.looping = false; state.bowActive = false;
-                // Reset robot position to center when idle
                 robotGroup.position.x = 0;
                 robotGroup.position.z = 0;
                 robotGroup.rotation.y = 0;
@@ -1061,7 +1049,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             rightLegGroup.rotation.x = 0;
             leftLowerLegGroup.rotation.x = 0;
             rightLowerLegGroup.rotation.x = 0;
-            // Do NOT reset robotGroup position or rotation here, they are set in update
             torsoGroup.rotation.x = 0;
 
             if (state.cmd === 'walk' || isRun) {{
@@ -1084,7 +1071,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 const y = 1.5 * 4 * t * (1 - t);
                 robotGroup.position.y = 0.5 + y;
             }} else {{
-                // Ensure y is reset if not jumping
                 if (!state.soccerMode) robotGroup.position.y = 0.5;
             }}
 
@@ -1125,7 +1111,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             prevTime = time;
             update(dt);
             animateRobot();
-            // Update step info if not kata and not soccerMode (but soccer mode updates separately)
             if (!state.kataRunning) {{
                 updateStepInfo();
             }}
@@ -1148,7 +1133,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             state.cmd = 'run';
             state.looping = true;
             state.animating = true;
-            // Initialize circle angle
             state.circleAngle = 0;
             updateStepInfo();
         }} else if (state.kataSeq.length > 0) {{
@@ -1319,7 +1303,7 @@ with st.sidebar:
     st.markdown(f"### {t('commands')}")
     st.markdown(f"*{t('cmd_desc')}*")
     st.markdown(f"*{t('cmd_hint')}*")
-    action_input = st.text_input("", key="action_input",
+    action_input = st.text_input("Action", key="action_input",
                                  placeholder=t('action_placeholder'))
     if st.button(t('execute_action'), use_container_width=True):
         if action_input.strip():
@@ -1349,7 +1333,7 @@ with st.sidebar:
 
     st.markdown("---")
     st.markdown(f"### {t('speech')}")
-    speak_input = st.text_input("", key="speak_input", placeholder=t('speak_placeholder'))
+    speak_input = st.text_input("Speech", key="speak_input", placeholder=t('speak_placeholder'))
     if st.button(t('speak_button'), use_container_width=True):
         if speak_input.strip():
             st.session_state.speak_text = speak_input.strip()
@@ -1386,12 +1370,15 @@ col_view, col_info = st.columns([3, 1])
 
 with col_view:
     st.markdown(f"### {t('robot_view')}")
+    cache_buster = random.randint(100000, 999999)
     viewer_html = get_robot_viewer_html(
         st.session_state.robot_selected,
         st.session_state.command if st.session_state.kata is None else "",
-        st.session_state.kata
+        st.session_state.kata,
+        cache_buster
     )
-    st.components.v1.html(viewer_html, height=650, width=700, scrolling=False)
+    data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
+    st.iframe(data_uri, height=650, width=700)
 
 with col_info:
     st.markdown(f"""
