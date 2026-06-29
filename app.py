@@ -894,10 +894,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
             validCmds: {json.dumps(valid_commands)},
             // Soccer mode flag for UI label
             soccerMode: false,
-            // Circle motion
+            // Circle motion – larger radius for realistic look
             circleAngle: 0,
-            circleSpeed: 0.6,
-            circleRadius: 2.2,
+            circleSpeed: 0.45,
+            circleRadius: 3.5,
         }};
 
         // ---- UI update ----
@@ -988,9 +988,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None):
                 const target = new THREE.Vector3(x + dx, 0, z + dz);
                 robotGroup.lookAt(target);
                 // Add a slight roll (lean into the turn) – tilt around Z
-                // The sign depends on whether we're turning left or right; we want to lean inward.
-                // For this circle, the center is at (0,0,0), so inward direction is -position.
-                // We'll compute a lean based on the angle.
                 const leanAngle = -0.08 * Math.cos(state.circleAngle); // approximate
                 robotGroup.rotation.z = leanAngle;
 
