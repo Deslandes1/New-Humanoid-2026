@@ -563,6 +563,14 @@ st.markdown("""
         line-height: 1.3;
         text-align: center;
     }
+    .action-feedback {
+        background: #0066cc20;
+        border-left: 4px solid #0066cc;
+        padding: 8px 16px;
+        border-radius: 4px;
+        margin: 10px 0;
+        font-weight: 500;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1149,6 +1157,8 @@ if 'language' not in st.session_state:
     st.session_state.language = "en"
 if 'voice_gender' not in st.session_state:
     st.session_state.voice_gender = "Male"
+if 'action_feedback' not in st.session_state:
+    st.session_state.action_feedback = ""
 
 # ========== HEADER ==========
 lang = st.session_state.language
@@ -1302,6 +1312,7 @@ with st.sidebar:
         st.session_state.robot_selected = selected
         st.session_state.last_action = "idle"
         st.session_state.kata = None
+        st.session_state.action_feedback = ""
         st.rerun()
 
     robot_info = ROBOTS[st.session_state.robot_selected]
@@ -1323,11 +1334,13 @@ with st.sidebar:
         if st.session_state.kata is not None:
             st.session_state.kata = None
             st.session_state.command = ""
+            st.session_state.action_feedback = ""
             st.rerun()
     else:
         if st.session_state.kata != kata_selected:
             st.session_state.kata = kata_selected
             st.session_state.command = ""
+            st.session_state.action_feedback = f"Kata: {kata_selected}"
             st.rerun()
 
     if st.session_state.kata:
@@ -1347,6 +1360,8 @@ with st.sidebar:
     st.markdown(f"*{t('cmd_hint')}*")
     action_input = st.text_input("Action", key="action_input",
                                  placeholder=t('action_placeholder'))
+    
+    # Execute button
     if st.button(t('execute_action'), use_container_width=True):
         if action_input.strip():
             kata_name_match = None
@@ -1358,19 +1373,22 @@ with st.sidebar:
                 st.session_state.kata = kata_name_match
                 st.session_state.command = ""
                 st.session_state.last_action = f"Kata: {kata_name_match}"
+                st.session_state.action_feedback = f"✅ Executing Kata: {kata_name_match}"
                 st.rerun()
             else:
-                # Only allow valid commands (no soccer/ballout)
                 cmd = action_input.strip().lower()
                 if cmd in ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow']:
                     st.session_state.kata = None
                     st.session_state.command = cmd
                     st.session_state.last_action = cmd
+                    st.session_state.action_feedback = f"✅ Executing: {cmd}"
                     st.rerun()
                 else:
-                    st.warning("Invalid command. Please enter a valid action or kata name.")
+                    st.session_state.action_feedback = "❌ Invalid command. Use walk/run/jump/wave/frontflip/backflip/bow or a kata name."
+                    st.rerun()
         else:
-            st.warning(t('action_warning'))
+            st.session_state.action_feedback = "⚠️ Please type an action or kata name."
+            st.rerun()
 
     st.markdown("---")
     st.markdown(f"### {t('speech')}")
@@ -1406,12 +1424,23 @@ with st.sidebar:
     if st.session_state.kata:
         st.markdown(f"**{t('status_kata')}** {st.session_state.kata}")
 
+    # ---- DEBUG PANEL ----
+    with st.expander("🔍 Debug State", expanded=False):
+        st.write("**Current Command:**", st.session_state.command)
+        st.write("**Current Kata:**", st.session_state.kata)
+        st.write("**Last Action:**", st.session_state.last_action)
+        st.write("**Feedback:**", st.session_state.action_feedback)
+
 # ========== MAIN CONTENT ==========
 col_view, col_info = st.columns([3, 1])
 
 with col_view:
+    # Display feedback message
+    if st.session_state.action_feedback:
+        st.markdown(f'<div class="action-feedback">{st.session_state.action_feedback}</div>', unsafe_allow_html=True)
     st.markdown(f"### {t('robot_view')}")
-    cache_buster = random.randint(100000, 999999)
+    # Force cache bust with timestamp and random
+    cache_buster = int(time.time() * 1000) + random.randint(0, 9999)
     viewer_html = get_robot_viewer_html(
         st.session_state.robot_selected,
         st.session_state.command if st.session_state.kata is None else "",
