@@ -571,6 +571,15 @@ st.markdown("""
         margin: 10px 0;
         font-weight: 500;
     }
+    .debug-info {
+        background: #f0f8ff;
+        border: 1px dashed #88bce0;
+        padding: 8px 12px;
+        border-radius: 4px;
+        margin: 8px 0;
+        font-family: monospace;
+        font-size: 0.9rem;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1255,7 +1264,6 @@ with st.sidebar:
         })();
     </script>
     """
-    # Embed globe using <iframe> in markdown (no st.iframe TypeError)
     globe_data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(globe_html)
     st.markdown(
         f'<iframe src="{globe_data_uri}" height="220" scrolling="no" style="border:none; border-radius:50%; box-shadow: 0 4px 20px rgba(0,102,204,0.3);"></iframe>',
@@ -1438,17 +1446,25 @@ with col_view:
     # Display feedback message
     if st.session_state.action_feedback:
         st.markdown(f'<div class="action-feedback">{st.session_state.action_feedback}</div>', unsafe_allow_html=True)
+    
+    # ---- DEBUG: Show current command and kata ----
+    st.markdown(f"""
+    <div class="debug-info">
+        🧪 Command: <b>{st.session_state.command or '—'}</b> &nbsp;|&nbsp; 
+        Kata: <b>{st.session_state.kata or '—'}</b> &nbsp;|&nbsp; 
+        Last action: <b>{st.session_state.last_action}</b>
+    </div>
+    """, unsafe_allow_html=True)
+
     st.markdown(f"### {t('robot_view')}")
-    # Force cache bust with timestamp and random
-    cache_buster = int(time.time() * 1000) + random.randint(0, 9999)
+    # Use st.components.v1.html for reliable re-render
     viewer_html = get_robot_viewer_html(
         st.session_state.robot_selected,
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata,
-        cache_buster
+        cache_buster=int(time.time() * 1000) + random.randint(0, 99999)
     )
-    data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
-    st.iframe(data_uri, height=650, width=700)
+    st.components.v1.html(viewer_html, height=650, width=700)
 
 with col_info:
     st.markdown(f"""
