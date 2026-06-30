@@ -656,6 +656,19 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 border-radius: 3px;
                 transition: width 0.1s;
             }}
+            #debug-overlay {{
+                position: absolute; bottom: 100px; left: 20px;
+                background: rgba(0,0,0,0.7);
+                color: #00ff00;
+                font-family: monospace;
+                font-size: 14px;
+                padding: 8px 12px;
+                border-radius: 6px;
+                pointer-events: none;
+                z-index: 20;
+                max-width: 300px;
+                white-space: pre-wrap;
+            }}
         </style>
     </head>
     <body>
@@ -663,6 +676,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         <div id="info">🤖 {robot_name} | Command: {command if command else 'Idle'} | Kata: {kata_name if kata_name else 'None'}</div>
         <div id="step-info">⏳ Waiting...</div>
         <div id="step-progress"><div id="step-progress-bar" style="width:0%"></div></div>
+        <div id="debug-overlay">Loading...</div>
         <script type="importmap">
         {{
             "imports": {{
@@ -676,6 +690,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
         const stepInfoEl = document.getElementById('step-info');
         const progressBar = document.getElementById('step-progress-bar');
+        const debugOverlay = document.getElementById('debug-overlay');
 
         // ---- Scene setup ----
         const scene = new THREE.Scene();
@@ -963,6 +978,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         // ---- DEBUG: log the kata sequence ----
         console.log('Kata sequence length:', state.kataSeq.length);
         console.log('Kata sequence:', state.kataSeq);
+        debugOverlay.textContent = `Kata seq: ${{state.kataSeq.length}} steps\\nKata running: ${{state.kataSeq.length > 0}}`;
 
         // ---- UI update ----
         function updateStepInfo() {{
@@ -973,15 +989,19 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 const progress = (state.kataIdx / total) * 100;
                 stepInfoEl.textContent = `🥋 Step ${{current}}/${{total}}: ${{stepName.toUpperCase()}}`;
                 progressBar.style.width = progress + '%';
+                debugOverlay.textContent = `Running kata step ${{current}}/${{total}}: ${{stepName}}`;
             }} else if (state.kataRunning && state.kataComplete) {{
                 stepInfoEl.textContent = '✅ Kata Complete!';
                 progressBar.style.width = '100%';
+                debugOverlay.textContent = 'Kata complete';
             }} else if (state.cmd !== 'idle') {{
                 stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
                 progressBar.style.width = (state.animating ? (state.animTimer / 1.5 * 100) : 0) + '%';
+                debugOverlay.textContent = `Running command: ${{state.cmd}}`;
             }} else {{
                 stepInfoEl.textContent = '⏳ Idle';
                 progressBar.style.width = '0%';
+                debugOverlay.textContent = 'Idle';
             }}
         }}
 
@@ -1119,6 +1139,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             state.kataTimer = 0;
             state.kataComplete = false;
             state.kataAction = null;
+            debugOverlay.textContent = `Starting kata: ${{state.kataSeq.length}} steps`;
         }} else {{
             console.log('No kata sequence');
             if (state.validCmds.includes(state.cmd)) {{
@@ -1475,10 +1496,9 @@ with col_view:
         cache_buster
     )
 
-    # Use an iframe with a data URI – this forces a full reload on every run
-    viewer_b64 = base64.b64encode(viewer_html.encode('utf-8')).decode('utf-8')
-    viewer_src = f"data:text/html;charset=utf-8;base64,{viewer_b64}"
-    st.iframe(viewer_src, height=650, width=700)
+    # Use st.components.v1.html with a dynamic key to force a full remount
+    # (despite deprecation, it still works reliably for this use case)
+    st.components.v1.html(viewer_html, height=650, width=700, key=f"viewer_{cache_buster}")
 
 with col_info:
     st.markdown(f"""
