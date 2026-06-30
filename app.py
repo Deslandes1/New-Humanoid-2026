@@ -32,7 +32,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Kata Performance",
         "commands": "🎮 Commands",
         "cmd_desc": "Walk and Run loop continuously. Jump, Wave, Frontflip, Backflip, Bow play once.",
-        "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence (each move lasts 20 seconds).",
+        "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence (each move lasts 20 seconds with fast repetitions).",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
         "bow_kata": "🥋 Bow + Kata",
@@ -83,7 +83,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Performance Kata",
         "commands": "🎮 Commandes",
         "cmd_desc": "Marche et Course en boucle continue. Saut, Salut, Saut périlleux avant, Saut périlleux arrière, Salutation joués une fois.",
-        "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète (chaque mouvement dure 20 secondes).",
+        "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète (chaque mouvement dure 20 secondes avec répétitions rapides).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
         "bow_kata": "🥋 Salut + Kata",
@@ -134,7 +134,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Rendimiento Kata",
         "commands": "🎮 Comandos",
         "cmd_desc": "Caminar y Correr en bucle continuo. Saltar, Saludar, Mortal hacia adelante, Mortal hacia atrás, Inclinación se ejecutan una vez.",
-        "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa (cada movimiento dura 20 segundos).",
+        "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa (cada movimiento dura 20 segundos con repeticiones rápidas).",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
         "bow_kata": "🥋 Inclinación + Kata",
@@ -185,7 +185,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Performance Kata",
         "commands": "🎮 Comandos",
         "cmd_desc": "Andar e Correr em loop contínuo. Pular, Acenar, Mortal para frente, Mortal para trás, Reverência executados uma vez.",
-        "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa (cada movimento dura 20 segundos).",
+        "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa (cada movimento dura 20 segundos com repetições rápidas).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
         "bow_kata": "🥋 Reverência + Kata",
@@ -236,7 +236,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 型 (Kata) 表演",
         "commands": "🎮 指令",
         "cmd_desc": "行走和跑步循环持续。跳跃、挥手、前空翻、后空翻、鞠躬各执行一次。",
-        "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列（每个动作持续20秒）。",
+        "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列（每个动作持续20秒，快速重复）。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
         "bow_kata": "🥋 鞠躬 + 型 (Kata)",
@@ -378,7 +378,7 @@ KATAS = {
 }
 
 def get_kata_sequence(kata_name):
-    # Each kata has a bow (2s) + 4 techniques of 20 seconds each.
+    # Each kata: bow (2s) + 4 techniques of 20s each
     techniques = {
         "Taikyoku Shodan": [["punch_r", 20.0], ["kick_l", 20.0], ["block", 20.0], ["stance", 20.0]],
         "Heian Shodan": [["punch_l", 20.0], ["kick_r", 20.0], ["punch_r", 20.0], ["block", 20.0]],
@@ -1141,36 +1141,52 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
-            // ---- Kata pose moves ----
+            // ---- Kata pose moves: FAST REPETITIONS ----
             const pose = state.cmd;
-            const p = state.poseProgress || 0;
+            // We use state.animTimer (elapsed time for this action) to compute oscillation
+            const t = state.animTimer || 0;
             if (['punch_l','punch_r','kick_l','kick_r','block','stance'].includes(pose)) {{
-                // Quick ease-in (20% of duration) then hold
-                const ease = p < 0.2 ? p / 0.2 : 1.0;
+                // For punch: rapid extension/retraction (period ~0.25s)
                 if (pose === 'punch_l') {{
-                    leftArmGroup.rotation.x = -1.2 * ease;
-                    leftForearmGroup.rotation.x = -1.0 * ease;
+                    const val = 0.5 + 0.5 * Math.sin(t * 12); // 12 rad/s ≈ 2 cycles per second? Actually 12 rad/s ~ 1.9 Hz, so ~2 punches per second.
+                    // We want faster: let's use period 0.4s => frequency 2.5 Hz => 2*PI*2.5 ≈ 15.7 rad/s
+                    // Use 16 rad/s for ~2.5 punches per second.
+                    const speed = 16;
+                    const punch = 0.5 + 0.5 * Math.sin(t * speed);
+                    leftArmGroup.rotation.x = -1.2 * punch;
+                    leftForearmGroup.rotation.x = -1.0 * punch;
                 }} else if (pose === 'punch_r') {{
-                    rightArmGroup.rotation.x = -1.2 * ease;
-                    rightForearmGroup.rotation.x = -1.0 * ease;
+                    const speed = 16;
+                    const punch = 0.5 + 0.5 * Math.sin(t * speed);
+                    rightArmGroup.rotation.x = -1.2 * punch;
+                    rightForearmGroup.rotation.x = -1.0 * punch;
                 }} else if (pose === 'kick_l') {{
-                    leftLegGroup.rotation.x = 0.8 * ease;
-                    leftLowerLegGroup.rotation.x = 0.6 * ease;
+                    const speed = 12; // slightly slower
+                    const kick = 0.5 + 0.5 * Math.sin(t * speed);
+                    leftLegGroup.rotation.x = 0.8 * kick;
+                    leftLowerLegGroup.rotation.x = 0.6 * kick;
                 }} else if (pose === 'kick_r') {{
-                    rightLegGroup.rotation.x = 0.8 * ease;
-                    rightLowerLegGroup.rotation.x = 0.6 * ease;
+                    const speed = 12;
+                    const kick = 0.5 + 0.5 * Math.sin(t * speed);
+                    rightLegGroup.rotation.x = 0.8 * kick;
+                    rightLowerLegGroup.rotation.x = 0.6 * kick;
                 }} else if (pose === 'block') {{
-                    leftArmGroup.rotation.x = -0.3 * ease;
-                    rightArmGroup.rotation.x = -0.3 * ease;
-                    leftArmGroup.rotation.y = 0.5 * ease;
-                    rightArmGroup.rotation.y = -0.5 * ease;
-                    leftForearmGroup.rotation.x = -0.5 * ease;
-                    rightForearmGroup.rotation.x = -0.5 * ease;
+                    const speed = 10;
+                    const block = 0.5 + 0.5 * Math.sin(t * speed);
+                    leftArmGroup.rotation.x = -0.3 * block;
+                    rightArmGroup.rotation.x = -0.3 * block;
+                    leftArmGroup.rotation.y = 0.5 * block;
+                    rightArmGroup.rotation.y = -0.5 * block;
+                    leftForearmGroup.rotation.x = -0.5 * block;
+                    rightForearmGroup.rotation.x = -0.5 * block;
                 }} else if (pose === 'stance') {{
-                    leftArmGroup.rotation.x = -0.2 * ease;
-                    rightArmGroup.rotation.x = -0.2 * ease;
-                    leftLegGroup.rotation.x = 0.2 * ease;
-                    rightLegGroup.rotation.x = -0.2 * ease;
+                    // Slow sway (period ~2s)
+                    const speed = 3;
+                    const sway = Math.sin(t * speed);
+                    leftLegGroup.rotation.x = 0.1 * sway;
+                    rightLegGroup.rotation.x = -0.1 * sway;
+                    leftArmGroup.rotation.x = -0.1 * sway;
+                    rightArmGroup.rotation.x = 0.1 * sway;
                 }}
                 robotGroup.position.y = 0.71;
                 return;
@@ -1194,8 +1210,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
             // ---- Jump ----
             if (state.cmd === 'jump' && state.animating) {{
-                const t = Math.min(state.animTimer / 1.2, 1);
-                const y = 1.5 * 4 * t * (1 - t);
+                const t2 = Math.min(state.animTimer / 1.2, 1);
+                const y = 1.5 * 4 * t2 * (1 - t2);
                 robotGroup.position.y = 0.71 + y;
             }} else {{
                 robotGroup.position.y = 0.71;
@@ -1203,18 +1219,18 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
             // ---- Frontflip / Backflip ----
             if (state.cmd === 'frontflip' && state.animating) {{
-                const t = Math.min(state.animTimer / 1.5, 1);
-                const y = 2.0 * 4 * t * (1 - t);
+                const t2 = Math.min(state.animTimer / 1.5, 1);
+                const y = 2.0 * 4 * t2 * (1 - t2);
                 robotGroup.position.y = 0.71 + y;
-                robotGroup.rotation.x = t * 2 * Math.PI;
-                robotGroup.position.z = -0.3 * Math.sin(t * Math.PI);
+                robotGroup.rotation.x = t2 * 2 * Math.PI;
+                robotGroup.position.z = -0.3 * Math.sin(t2 * Math.PI);
             }}
             if (state.cmd === 'backflip' && state.animating) {{
-                const t = Math.min(state.animTimer / 1.5, 1);
-                const y = 2.0 * 4 * t * (1 - t);
+                const t2 = Math.min(state.animTimer / 1.5, 1);
+                const y = 2.0 * 4 * t2 * (1 - t2);
                 robotGroup.position.y = 0.71 + y;
-                robotGroup.rotation.x = -t * 2 * Math.PI;
-                robotGroup.position.z = 0.3 * Math.sin(t * Math.PI);
+                robotGroup.rotation.x = -t2 * 2 * Math.PI;
+                robotGroup.position.z = 0.3 * Math.sin(t2 * Math.PI);
             }}
 
             // ---- Wave ----
