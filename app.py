@@ -1163,7 +1163,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 rightArmGroup.rotation.x = 0.2;
                 leftForearmGroup.rotation.x = -0.1;
                 rightForearmGroup.rotation.x = -0.1;
-                // Left leg: completely still
+                // Left leg: completely still (no rotation at all)
                 leftLegGroup.rotation.x = 0;
                 leftLowerLegGroup.rotation.x = 0;
                 // Right leg: subtle sway to match ball bounce
@@ -1414,7 +1414,7 @@ with st.sidebar:
         })();
     </script>
     """
-    # Encode as data URI and embed via <iframe> in markdown (no deprecation warning)
+    # Embed the globe using an <iframe> in markdown (avoids st.iframe TypeError)
     globe_data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(globe_html)
     st.markdown(
         f'<iframe src="{globe_data_uri}" height="220" scrolling="no" style="border:none; border-radius:50%; box-shadow: 0 4px 20px rgba(0,102,204,0.3);"></iframe>',
