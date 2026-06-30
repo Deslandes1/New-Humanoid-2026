@@ -402,21 +402,20 @@ def get_kata_sequence(kata_name):
 
 def get_demo_sequence():
     # All Moves Demo: Bow -> kata move -> basic move -> ... -> Bow
-    # Each kata move lasts 2s (quick single move), each basic move 2-3s.
     return [
         ["bow", 2.0],
         ["punch_l", 2.0],
-        ["walk", 3.0],
+        ["walk", 4.0],
         ["punch_r", 2.0],
-        ["run", 3.0],
+        ["run", 4.0],
         ["kick_l", 2.0],
-        ["jump", 2.0],
+        ["jump", 2.5],
         ["kick_r", 2.0],
-        ["wave", 2.0],
+        ["wave", 3.0],
         ["block", 2.0],
-        ["frontflip", 2.0],
+        ["frontflip", 2.5],
         ["stance", 2.0],
-        ["backflip", 2.0],
+        ["backflip", 2.5],
         ["bow", 2.0]
     ]
 
@@ -599,7 +598,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # ---- 3D Viewer HTML generator ----
-def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster=0):
+def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster=0, show_headband=False):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
     main_color = color_map.get(robot_name, "#3388ff")
@@ -843,7 +842,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         ball.position.set(0, 0.45, 0);
         head.add(ball);
 
-        if ({str(is_kata).lower()}) {{
+        // Headband: show if kata OR demo mode
+        const showHeadband = {str(show_headband or is_kata).lower()};
+        if (showHeadband) {{
             const bandGeo = new THREE.TorusGeometry(0.3, 0.03, 8, 20);
             const band = new THREE.Mesh(bandGeo, headbandMat);
             band.rotation.x = Math.PI/2;
@@ -1090,6 +1091,19 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 }}
                 const dur = state.kataAction[1];
                 state.kataTimer += dt;
+                // Update animations for walk/run
+                if (state.cmd === 'walk') {{
+                    state.walkCycle += dt * 2.2;
+                }} else if (state.cmd === 'run') {{
+                    state.walkCycle += dt * 8.0;
+                }}
+                if (state.cmd === 'bow') {{
+                    state.bowProgress = Math.min(state.kataTimer / dur, 1.0);
+                }}
+                if (['punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance'].includes(state.cmd)) {{
+                    state.poseProgress = Math.min(state.kataTimer / dur, 1.0);
+                }}
+                // Check if step is complete
                 if (state.kataTimer >= dur) {{
                     state.kataIdx++;
                     state.kataAction = null;
@@ -1097,14 +1111,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     state.looping = false;
                     state.bowActive = false;
                 }}
-                if (['punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance'].includes(state.cmd)) {{
-                    state.poseProgress = Math.min(state.kataTimer / dur, 1.0);
-                }}
-                if (state.cmd === 'bow') state.bowProgress = Math.min(state.kataTimer / dur, 1.0);
                 return;
             }}
 
-            // ---- Normal commands ----
+            // ---- Normal commands (non-kata) ----
             if (state.bowKataActive) return;
 
             if (state.cmd === 'idle') {{
@@ -1172,14 +1182,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
-            // ---- Kata pose moves: FAST REPETITIONS ----
+            // ---- Kata pose moves (fast oscillations) ----
             const pose = state.cmd;
-            const t = state.animTimer || 0;
+            // Determine which timer to use: for kataRunning we use kataTimer, else animTimer
+            const timer = state.kataRunning ? state.kataTimer : state.animTimer;
             if (['punch_l','punch_r','kick_l','kick_r','block','stance'].includes(pose)) {{
-                // For short durations (like 2s in demo), we still do oscillations but they'll be quick.
-                // Use a speed factor to make it look like a single fast move.
-                const speed = 16; // oscillations per second
-                const osc = 0.5 + 0.5 * Math.sin(t * speed);
+                const speed = 16;
+                const osc = 0.5 + 0.5 * Math.sin(timer * speed);
                 if (pose === 'punch_l') {{
                     leftArmGroup.rotation.x = -1.2 * osc;
                     leftForearmGroup.rotation.x = -1.0 * osc;
@@ -1193,7 +1202,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     rightLegGroup.rotation.x = 0.8 * osc;
                     rightLowerLegGroup.rotation.x = 0.6 * osc;
                 }} else if (pose === 'block') {{
-                    const block = 0.5 + 0.5 * Math.sin(t * 10);
+                    const block = 0.5 + 0.5 * Math.sin(timer * 10);
                     leftArmGroup.rotation.x = -0.3 * block;
                     rightArmGroup.rotation.x = -0.3 * block;
                     leftArmGroup.rotation.y = 0.5 * block;
@@ -1201,7 +1210,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     leftForearmGroup.rotation.x = -0.5 * block;
                     rightForearmGroup.rotation.x = -0.5 * block;
                 }} else if (pose === 'stance') {{
-                    const sway = Math.sin(t * 3);
+                    const sway = Math.sin(timer * 3);
                     leftLegGroup.rotation.x = 0.1 * sway;
                     rightLegGroup.rotation.x = -0.1 * sway;
                     leftArmGroup.rotation.x = -0.1 * sway;
@@ -1225,47 +1234,58 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 rightLegGroup.rotation.x = -legSwing;
                 leftLowerLegGroup.rotation.x = -kneeSwing;
                 rightLowerLegGroup.rotation.x = kneeSwing;
+                robotGroup.position.y = 0.71;
+                return;
             }}
 
             // ---- Jump ----
-            if (state.cmd === 'jump' && state.animating) {{
-                const t2 = Math.min(state.animTimer / 1.2, 1);
-                const y = 1.5 * 4 * t2 * (1 - t2);
+            if (state.cmd === 'jump') {{
+                // Use timer to compute jump arc
+                const dur = state.kataRunning ? (state.kataAction ? state.kataAction[1] : 2.0) : 1.2;
+                const t = Math.min(timer / dur, 1);
+                const y = 1.5 * 4 * t * (1 - t);
                 robotGroup.position.y = 0.71 + y;
-            }} else {{
-                robotGroup.position.y = 0.71;
+                return;
             }}
 
             // ---- Frontflip / Backflip ----
-            if (state.cmd === 'frontflip' && state.animating) {{
-                const t2 = Math.min(state.animTimer / 1.5, 1);
-                const y = 2.0 * 4 * t2 * (1 - t2);
+            if (state.cmd === 'frontflip' || state.cmd === 'backflip') {{
+                const dur = state.kataRunning ? (state.kataAction ? state.kataAction[1] : 2.0) : 1.5;
+                const t = Math.min(timer / dur, 1);
+                const y = 2.0 * 4 * t * (1 - t);
                 robotGroup.position.y = 0.71 + y;
-                robotGroup.rotation.x = t2 * 2 * Math.PI;
-                robotGroup.position.z = -0.3 * Math.sin(t2 * Math.PI);
-            }}
-            if (state.cmd === 'backflip' && state.animating) {{
-                const t2 = Math.min(state.animTimer / 1.5, 1);
-                const y = 2.0 * 4 * t2 * (1 - t2);
-                robotGroup.position.y = 0.71 + y;
-                robotGroup.rotation.x = -t2 * 2 * Math.PI;
-                robotGroup.position.z = 0.3 * Math.sin(t2 * Math.PI);
+                const angle = t * 2 * Math.PI;
+                if (state.cmd === 'frontflip') {{
+                    robotGroup.rotation.x = angle;
+                    robotGroup.position.z = -0.3 * Math.sin(t * Math.PI);
+                }} else {{
+                    robotGroup.rotation.x = -angle;
+                    robotGroup.position.z = 0.3 * Math.sin(t * Math.PI);
+                }}
+                return;
             }}
 
             // ---- Wave ----
-            if (state.cmd === 'wave' && state.animating) {{
-                rightArmGroup.rotation.x = -0.8 + Math.sin(state.animTimer * 6) * 0.3;
-                rightForearmGroup.rotation.x = 0.2 + Math.sin(state.animTimer * 6 + 1) * 0.2;
+            if (state.cmd === 'wave') {{
+                rightArmGroup.rotation.x = -0.8 + Math.sin(timer * 6) * 0.3;
+                rightForearmGroup.rotation.x = 0.2 + Math.sin(timer * 6 + 1) * 0.2;
+                robotGroup.position.y = 0.71;
+                return;
             }}
 
             // ---- Bow (non-kata) ----
             if (state.cmd === 'bow' && (state.bowActive || state.animating)) {{
-                const prog = state.bowActive ? state.bowProgress : Math.min(state.animTimer / 2.0, 1);
+                const prog = state.bowActive ? state.bowProgress : Math.min(timer / 2.0, 1);
                 const ease = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
                 torsoGroup.rotation.x = ease * 0.6;
-            }} else {{
-                torsoGroup.rotation.x = 0;
+                robotGroup.position.y = 0.71;
+                return;
             }}
+
+            // ---- Idle or fallback ----
+            robotGroup.position.y = 0.71;
+            robotGroup.rotation.x = 0;
+            robotGroup.position.z = 0;
         }}
 
         // ---- Animation loop ----
@@ -1585,7 +1605,7 @@ with st.sidebar:
         st.session_state.last_action = "bowkata"
         st.rerun()
 
-    # NEW: All Moves Demo button
+    # All Moves Demo button
     if st.button(t('all_moves_demo'), use_container_width=True):
         st.session_state.kata = None
         st.session_state.command = "allmoves"
@@ -1632,11 +1652,14 @@ col_view, col_info = st.columns([3, 1])
 with col_view:
     st.markdown(f"### {t('robot_view')}")
     cache_buster = random.randint(100000, 999999)
+    # Pass show_headband=True when command is allmoves
+    show_headband = (st.session_state.command == "allmoves")
     viewer_html = get_robot_viewer_html(
         st.session_state.robot_selected,
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata,
-        cache_buster
+        cache_buster,
+        show_headband
     )
     data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(viewer_html)
     st.iframe(data_uri, height=650, width=700)
