@@ -32,7 +32,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Kata Performance",
         "commands": "🎮 Commands",
         "cmd_desc": "Walk and Run loop continuously. Jump, Wave, Frontflip, Backflip, Bow play once.",
-        "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence (each move lasts 20 seconds with fast repetitions).",
+        "cmd_hint": "Type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence (starts and ends with a bow, each technique is fast and repeats for 20s).",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
         "bow_kata": "🥋 Bow + Kata",
@@ -83,7 +83,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Performance Kata",
         "commands": "🎮 Commandes",
         "cmd_desc": "Marche et Course en boucle continue. Saut, Salut, Saut périlleux avant, Saut périlleux arrière, Salutation joués une fois.",
-        "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète (chaque mouvement dure 20 secondes avec répétitions rapides).",
+        "cmd_hint": "Tapez un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète (commence et se termine par un salut, chaque technique rapide se répète pendant 20s).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
         "bow_kata": "🥋 Salut + Kata",
@@ -134,7 +134,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Rendimiento Kata",
         "commands": "🎮 Comandos",
         "cmd_desc": "Caminar y Correr en bucle continuo. Saltar, Saludar, Mortal hacia adelante, Mortal hacia atrás, Inclinación se ejecutan una vez.",
-        "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa (cada movimiento dura 20 segundos con repeticiones rápidas).",
+        "cmd_hint": "Escriba un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa (comienza y termina con una inclinación, cada técnica rápida se repite durante 20s).",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
         "bow_kata": "🥋 Inclinación + Kata",
@@ -185,7 +185,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Performance Kata",
         "commands": "🎮 Comandos",
         "cmd_desc": "Andar e Correr em loop contínuo. Pular, Acenar, Mortal para frente, Mortal para trás, Reverência executados uma vez.",
-        "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa (cada movimento dura 20 segundos com repetições rápidas).",
+        "cmd_hint": "Digite um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa (começa e termina com uma reverência, cada técnica rápida se repete por 20s).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
         "bow_kata": "🥋 Reverência + Kata",
@@ -236,7 +236,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 型 (Kata) 表演",
         "commands": "🎮 指令",
         "cmd_desc": "行走和跑步循环持续。跳跃、挥手、前空翻、后空翻、鞠躬各执行一次。",
-        "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列（每个动作持续20秒，快速重复）。",
+        "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列（以鞠躬开始和结束，每个技巧快速重复20秒）。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
         "bow_kata": "🥋 鞠躬 + 型 (Kata)",
@@ -378,8 +378,10 @@ KATAS = {
 }
 
 def get_kata_sequence(kata_name):
-    # Each kata: bow (2s) + 4 techniques of 20s each
-    techniques = {
+    # Each kata has a unique set of 4 distinct techniques, and starts and ends with a bow.
+    # Techniques: punch_l, punch_r, kick_l, kick_r, block, stance
+    # We'll define a unique combination for each kata.
+    techniques_map = {
         "Taikyoku Shodan": [["punch_r", 20.0], ["kick_l", 20.0], ["block", 20.0], ["stance", 20.0]],
         "Heian Shodan": [["punch_l", 20.0], ["kick_r", 20.0], ["punch_r", 20.0], ["block", 20.0]],
         "Heian Nidan": [["kick_l", 20.0], ["punch_r", 20.0], ["kick_r", 20.0], ["block", 20.0]],
@@ -391,8 +393,10 @@ def get_kata_sequence(kata_name):
         "Kanku Dai": [["block", 20.0], ["punch_r", 20.0], ["kick_l", 20.0], ["punch_l", 20.0]],
         "Gojushiho": [["kick_r", 20.0], ["punch_r", 20.0], ["block", 20.0], ["stance", 20.0]]
     }
-    base = [["bow", 2.0]] + techniques.get(kata_name, [["idle", 1.0]])
-    return base
+    techniques = techniques_map.get(kata_name, [["idle", 1.0]])
+    # Start with bow, then techniques, then end with bow
+    sequence = [["bow", 2.0]] + techniques + [["bow", 2.0]]
+    return sequence
 
 # ---- Custom CSS - Light Blue Theme ----
 st.markdown("""
@@ -1143,14 +1147,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
             // ---- Kata pose moves: FAST REPETITIONS ----
             const pose = state.cmd;
-            // We use state.animTimer (elapsed time for this action) to compute oscillation
             const t = state.animTimer || 0;
             if (['punch_l','punch_r','kick_l','kick_r','block','stance'].includes(pose)) {{
-                // For punch: rapid extension/retraction (period ~0.25s)
                 if (pose === 'punch_l') {{
-                    const val = 0.5 + 0.5 * Math.sin(t * 12); // 12 rad/s ≈ 2 cycles per second? Actually 12 rad/s ~ 1.9 Hz, so ~2 punches per second.
-                    // We want faster: let's use period 0.4s => frequency 2.5 Hz => 2*PI*2.5 ≈ 15.7 rad/s
-                    // Use 16 rad/s for ~2.5 punches per second.
                     const speed = 16;
                     const punch = 0.5 + 0.5 * Math.sin(t * speed);
                     leftArmGroup.rotation.x = -1.2 * punch;
@@ -1161,7 +1160,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     rightArmGroup.rotation.x = -1.2 * punch;
                     rightForearmGroup.rotation.x = -1.0 * punch;
                 }} else if (pose === 'kick_l') {{
-                    const speed = 12; // slightly slower
+                    const speed = 12;
                     const kick = 0.5 + 0.5 * Math.sin(t * speed);
                     leftLegGroup.rotation.x = 0.8 * kick;
                     leftLowerLegGroup.rotation.x = 0.6 * kick;
@@ -1180,7 +1179,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     leftForearmGroup.rotation.x = -0.5 * block;
                     rightForearmGroup.rotation.x = -0.5 * block;
                 }} else if (pose === 'stance') {{
-                    // Slow sway (period ~2s)
                     const speed = 3;
                     const sway = Math.sin(t * speed);
                     leftLegGroup.rotation.x = 0.1 * sway;
