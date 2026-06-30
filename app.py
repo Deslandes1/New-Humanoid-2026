@@ -707,7 +707,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
         // ---- Robot construction (Transformer style with waist, 'G') ----
         const robotGroup = new THREE.Group();
-        robotGroup.position.y = 0.5;
+        // Raise robot so feet are on the ground (grid at -0.5)
+        // Previously at 0.5, now at 0.71 so foot top = -0.5
+        robotGroup.position.y = 0.71;
 
         // Materials
         const mainMat = new THREE.MeshStandardMaterial({{ color: '{main_color}', roughness: 0.4, metalness: 0.6 }});
@@ -966,7 +968,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             soccerBall.material.needsUpdate = true;
         }})();
         // Ball positions (relative to robotGroup)
-        const ballBasePos = new THREE.Vector3(0, -0.8, 0.5);   // ground (unused)
+        const ballBasePos = new THREE.Vector3(0, -0.8, 0.5);   // initial (will be overwritten)
         soccerBall.position.copy(ballBasePos);
         robotGroup.add(soccerBall);
 
@@ -1069,17 +1071,17 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 // Same speed as before
                 state.walkCycle += dt * 3.5;
 
-                // Computed from the robot's right foot and knee positions
-                const footSurface = -1.21;   // top of right foot (world relative to robotGroup)
-                const kneeHeight = -0.85;    // right knee level
+                // Realistic bounce on right foot at ground level
+                const footSurface = -0.5;      // ground level (top of foot)
+                const kneeHeight = -0.14;      // center of right knee (computed from geometry)
                 const ballRadius = 0.2;
-                const horizontalPos = 0.25;  // right foot x
-                const footZ = 0.05;          // right foot z (aligned with the foot)
+                const horizontalPos = 0.25;    // right foot x
+                const footZ = 0.05;            // right foot z
                 const phase = state.walkCycle;
-                // Smooth bounce using abs(sin) 
-                const bounce = Math.abs(Math.sin(phase));
-                // Ball center y = foot surface + radius + (knee - foot) * bounce
-                const yPos = footSurface + ballRadius + (kneeHeight - footSurface) * bounce;
+                const bounce = Math.abs(Math.sin(phase)); // 0..1
+                const minY = footSurface + ballRadius;     // ball touching foot
+                const maxY = kneeHeight;                   // ball reaches knee height
+                const yPos = minY + (maxY - minY) * bounce;
                 soccerBall.position.set(horizontalPos, yPos, footZ);
                 soccerBall.rotation.x += dt * 1.5;
                 soccerBall.rotation.z += dt * 1.0;
@@ -1152,7 +1154,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             rightLowerLegGroup.rotation.x = 0;
             torsoGroup.rotation.x = 0;
 
-            // Soccer / Right Foot Bounce: lean backward, arms back for balance, left foot stationary
+            // Soccer / Right Foot Bounce: lean backward, arms back, left foot still
             if (isSoccer) {{
                 // Lean backward slightly
                 torsoGroup.rotation.x = -0.12;
@@ -1168,7 +1170,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 const legSway = Math.sin(state.walkCycle) * 0.05;
                 rightLegGroup.rotation.x = legSway;
                 rightLowerLegGroup.rotation.x = legSway * 0.3;
-                robotGroup.position.y = 0.5;
+                robotGroup.position.y = 0.71; // keep robot on ground
                 return;
             }}
 
@@ -1190,15 +1192,15 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             if (state.cmd === 'jump' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.2, 1);
                 const y = 1.5 * 4 * t * (1 - t);
-                robotGroup.position.y = 0.5 + y;
+                robotGroup.position.y = 0.71 + y;
             }} else {{
-                if (!state.soccerMode) robotGroup.position.y = 0.5;
+                if (!state.soccerMode) robotGroup.position.y = 0.71;
             }}
 
             if (state.cmd === 'frontflip' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.5, 1);
                 const y = 2.0 * 4 * t * (1 - t);
-                robotGroup.position.y = 0.5 + y;
+                robotGroup.position.y = 0.71 + y;
                 robotGroup.rotation.x = t * 2 * Math.PI;
                 robotGroup.position.z = -0.3 * Math.sin(t * Math.PI);
             }}
@@ -1206,7 +1208,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             if (state.cmd === 'backflip' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.5, 1);
                 const y = 2.0 * 4 * t * (1 - t);
-                robotGroup.position.y = 0.5 + y;
+                robotGroup.position.y = 0.71 + y;
                 robotGroup.rotation.x = -t * 2 * Math.PI;
                 robotGroup.position.z = 0.3 * Math.sin(t * Math.PI);
             }}
