@@ -1069,13 +1069,14 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 // Same speed as before
                 state.walkCycle += dt * 3.5;
 
-                const footHeight = ballBasePos.y; // -0.8
-                const kneeHeight = -0.2;          // knee level
-                const horizontalPos = -0.25;      // left foot position
+                // Foot surface (left foot) and knee height
+                const footSurface = -0.55;   // top of left foot
+                const kneeHeight = -0.25;    // just below knee
+                const horizontalPos = -0.25; // left foot x position
                 const phase = state.walkCycle;
-                // Bounce: use abs(sin) for smooth bounce from ground to knee
+                // Smooth bounce using abs(sin) 
                 const bounce = Math.abs(Math.sin(phase));
-                const yPos = footHeight + (kneeHeight - footHeight) * bounce;
+                const yPos = footSurface + (kneeHeight - footSurface) * bounce;
                 soccerBall.position.set(horizontalPos, yPos, ballBasePos.z);
                 soccerBall.rotation.x += dt * 1.5;
                 soccerBall.rotation.z += dt * 1.0;
