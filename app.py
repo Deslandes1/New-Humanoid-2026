@@ -571,7 +571,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (right foot bounce) ----
+# ---- 3D Viewer HTML generator (right foot bounce - realistic) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster=0):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -966,7 +966,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             soccerBall.material.needsUpdate = true;
         }})();
         // Ball positions (relative to robotGroup)
-        const ballBasePos = new THREE.Vector3(0, -0.8, 0.5);   // ground
+        const ballBasePos = new THREE.Vector3(0, -0.8, 0.5);   // ground (unused)
         soccerBall.position.copy(ballBasePos);
         robotGroup.add(soccerBall);
 
@@ -1064,20 +1064,23 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
-            // ---- Soccer / Right Foot Bounce ----
+            // ---- Soccer / Right Foot Bounce (realistic) ----
             if (state.soccerMode && state.cmd === 'run') {{
                 // Same speed as before
                 state.walkCycle += dt * 3.5;
 
-                // Right foot surface (grid level) and knee height
-                const footSurface = -0.55;   // top of right foot
-                const kneeHeight = -0.25;    // just below knee
-                const horizontalPos = 0.25;  // right foot x position
+                // Computed from the robot's right foot and knee positions
+                const footSurface = -1.21;   // top of right foot (world relative to robotGroup)
+                const kneeHeight = -0.85;    // right knee level
+                const ballRadius = 0.2;
+                const horizontalPos = 0.25;  // right foot x
+                const footZ = 0.05;          // right foot z (aligned with the foot)
                 const phase = state.walkCycle;
                 // Smooth bounce using abs(sin) 
                 const bounce = Math.abs(Math.sin(phase));
-                const yPos = footSurface + (kneeHeight - footSurface) * bounce;
-                soccerBall.position.set(horizontalPos, yPos, ballBasePos.z);
+                // Ball center y = foot surface + radius + (knee - foot) * bounce
+                const yPos = footSurface + ballRadius + (kneeHeight - footSurface) * bounce;
+                soccerBall.position.set(horizontalPos, yPos, footZ);
                 soccerBall.rotation.x += dt * 1.5;
                 soccerBall.rotation.z += dt * 1.0;
                 updateStepInfo();
@@ -1149,7 +1152,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             rightLowerLegGroup.rotation.x = 0;
             torsoGroup.rotation.x = 0;
 
-            // Soccer / Right Foot Bounce: lean backward, arms back for balance
+            // Soccer / Right Foot Bounce: lean backward, arms back for balance, left foot stationary
             if (isSoccer) {{
                 // Lean backward slightly
                 torsoGroup.rotation.x = -0.12;
@@ -1158,11 +1161,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 rightArmGroup.rotation.x = 0.2;
                 leftForearmGroup.rotation.x = -0.1;
                 rightForearmGroup.rotation.x = -0.1;
-                // Legs subtle sway to match the ball bounce
+                // Left leg: completely still
+                leftLegGroup.rotation.x = 0;
+                leftLowerLegGroup.rotation.x = 0;
+                // Right leg: subtle sway to match ball bounce
                 const legSway = Math.sin(state.walkCycle) * 0.05;
-                leftLegGroup.rotation.x = legSway;
-                rightLegGroup.rotation.x = -legSway;
-                leftLowerLegGroup.rotation.x = -legSway * 0.3;
+                rightLegGroup.rotation.x = legSway;
                 rightLowerLegGroup.rotation.x = legSway * 0.3;
                 robotGroup.position.y = 0.5;
                 return;
