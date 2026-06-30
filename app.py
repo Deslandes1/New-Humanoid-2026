@@ -378,20 +378,22 @@ KATAS = {
 }
 
 def get_kata_sequence(kata_name):
-    base = [["bow", 2.0], ["walk", 3.0], ["jump", 1.2], ["wave", 2.0], ["frontflip", 1.5], ["walk", 3.0], ["bow", 2.0]]
-    variations = {
-        "Taikyoku Shodan": [["idle", 1.0]] + base,
-        "Heian Shodan": base + [["idle", 1.0]],
-        "Heian Nidan": [["walk", 2.0], ["run", 2.0]] + base[2:],
-        "Heian Sandan": base[:3] + [["run", 2.0]] + base[3:],
-        "Heian Yondan": base[:4] + [["idle", 1.0]] + base[4:],
-        "Heian Godan": base[:2] + [["jump", 1.2], ["walk", 2.0]] + base[3:],
-        "Tekki Shodan": [["bow", 2.0], ["idle", 2.0]] + base[2:],
-        "Bassai Dai": base + [["idle", 2.0]],
-        "Kanku Dai": [["walk", 4.0], ["jump", 1.2], ["wave", 2.0], ["frontflip", 1.5], ["walk", 4.0]],
-        "Gojushiho": [["bow", 3.0], ["walk", 3.0], ["run", 3.0], ["jump", 1.2], ["frontflip", 1.5], ["wave", 2.0], ["bow", 2.0]]
+    # Each kata now has a bow (2s) + 4 techniques of 10s each.
+    # We'll define a set of technique sequences for each kata.
+    techniques = {
+        "Taikyoku Shodan": [["punch_r", 10.0], ["kick_l", 10.0], ["block", 10.0], ["stance", 10.0]],
+        "Heian Shodan": [["punch_l", 10.0], ["kick_r", 10.0], ["punch_r", 10.0], ["block", 10.0]],
+        "Heian Nidan": [["kick_l", 10.0], ["punch_r", 10.0], ["kick_r", 10.0], ["block", 10.0]],
+        "Heian Sandan": [["punch_r", 10.0], ["kick_r", 10.0], ["punch_l", 10.0], ["stance", 10.0]],
+        "Heian Yondan": [["kick_l", 10.0], ["block", 10.0], ["punch_r", 10.0], ["kick_r", 10.0]],
+        "Heian Godan": [["punch_l", 10.0], ["block", 10.0], ["kick_l", 10.0], ["punch_r", 10.0]],
+        "Tekki Shodan": [["stance", 10.0], ["punch_r", 10.0], ["kick_r", 10.0], ["block", 10.0]],
+        "Bassai Dai": [["punch_l", 10.0], ["kick_l", 10.0], ["punch_r", 10.0], ["kick_r", 10.0]],
+        "Kanku Dai": [["block", 10.0], ["punch_r", 10.0], ["kick_l", 10.0], ["punch_l", 10.0]],
+        "Gojushiho": [["kick_r", 10.0], ["punch_r", 10.0], ["block", 10.0], ["stance", 10.0]]
     }
-    return variations.get(kata_name, base)
+    base = [["bow", 2.0]] + techniques.get(kata_name, [["idle", 1.0]])
+    return base
 
 # ---- Custom CSS - Light Blue Theme ----
 st.markdown("""
@@ -596,7 +598,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         headband_color = "#ff0000"
         belt_rank = ""
 
-    valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow', 'bowkata']
+    # Extended command set for kata moves
+    valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow',
+                      'punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance', 'bowkata']
     cmd_lower = command.lower() if command else "idle"
     anim_cmd = cmd_lower if cmd_lower in valid_commands else 'idle'
 
@@ -665,7 +669,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
         // ---- Scene setup ----
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0xdcebf7);  // light blue
+        scene.background = new THREE.Color(0xdcebf7);
 
         const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
         camera.position.set(4, 3, 6);
@@ -709,7 +713,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         const robotGroup = new THREE.Group();
         robotGroup.position.y = 0.71;
 
-        // Materials (same as before)
+        // Materials
         const mainMat = new THREE.MeshStandardMaterial({{ color: '{main_color}', roughness: 0.4, metalness: 0.6 }});
         const accentMat = new THREE.MeshStandardMaterial({{ color: '{accent_color}', roughness: 0.3, metalness: 0.5 }});
         const darkMat = new THREE.MeshStandardMaterial({{ color: '#333333', roughness: 0.5, metalness: 0.4 }});
@@ -735,7 +739,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         chest.position.set(0, 0.3, 0.4);
         torsoGroup.add(chest);
 
-        // "G" emblem
         (function() {{
             const canvas = document.createElement('canvas');
             canvas.width = 128;
@@ -925,8 +928,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         rightFoot.position.set(0, -0.4, 0.05);
         rightLowerLegGroup.add(rightFoot);
 
-        // ---- NO SOCCER BALL ----
-
         scene.add(robotGroup);
 
         // ---- Animation state ----
@@ -946,10 +947,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             kataSeq: {kata_sequence_json},
             initCmd: '{anim_cmd}',
             validCmds: {json.dumps(valid_commands)},
-            // ---- NEW: bowkata mode ----
             bowKataActive: false,
-            bowKataPhase: 0, // 0 = bow, 1 = kata
+            bowKataPhase: 0,
             bowKataTimer: 0,
+            // For punch/kick/block/stance we track progress separately
+            poseProgress: 0,
+            poseDuration: 10.0, // default
         }};
 
         // ---- UI update ----
@@ -989,23 +992,20 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             // ---- Bow + Kata logic ----
             if (state.bowKataActive) {{
                 if (state.bowKataPhase === 0) {{
-                    // Perform bow
                     state.bowKataTimer += dt;
                     if (state.bowKataTimer >= 2.0) {{
                         state.bowKataPhase = 1;
                         state.bowKataTimer = 0;
-                        // Now start kata if we have a sequence
                         if (state.kataSeq.length > 0) {{
                             state.kataRunning = true;
                             state.kataIdx = 0;
                             state.kataTimer = 0;
                             state.kataComplete = false;
                             state.kataAction = null;
-                            state.bowKataActive = false; // bow done, kata runs normally
+                            state.bowKataActive = false;
                             updateStepInfo();
                             return;
                         }} else {{
-                            // No kata selected, just finish
                             state.bowKataActive = false;
                             state.cmd = 'idle';
                             state.bowActive = false;
@@ -1013,32 +1013,42 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                             return;
                         }}
                     }}
-                    // While bowing, set command to bow for animation
                     state.cmd = 'bow';
                     state.bowActive = true;
                     state.bowProgress = Math.min(state.bowKataTimer / 2.0, 1);
                     updateStepInfo();
                     return;
                 }}
-                // Should not reach here
                 return;
             }}
 
-            // ---- Kata logic (normal) ----
+            // ---- Kata logic ----
             if (state.kataRunning && !state.kataComplete) {{
                 if (state.kataAction === null) {{
                     if (state.kataIdx < state.kataSeq.length) {{
                         state.kataAction = state.kataSeq[state.kataIdx];
                         state.kataTimer = 0;
                         const type = state.kataAction[0];
+                        // For kata moves, we set the cmd to the move type and set appropriate flags
                         if (type === 'walk' || type === 'run') {{
                             state.cmd = type; state.looping = true; state.animating = true; state.bowActive = false;
                         }} else if (type === 'idle') {{
                             state.cmd = 'idle'; state.looping = false; state.animating = false; state.bowActive = false;
                         }} else if (type === 'bow') {{
                             state.cmd = 'bow'; state.looping = false; state.animating = false; state.bowActive = true; state.bowProgress = 0;
+                        }} else if (['punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance'].includes(type)) {{
+                            state.cmd = type;
+                            state.looping = false;
+                            state.animating = true;
+                            state.bowActive = false;
+                            state.poseProgress = 0;
+                            state.poseDuration = state.kataAction[1] || 10.0;
                         }} else {{
-                            state.cmd = type; state.looping = false; state.animating = true; state.bowActive = false;
+                            // fallback for other commands
+                            state.cmd = type;
+                            state.looping = false;
+                            state.animating = true;
+                            state.bowActive = false;
                         }}
                         updateStepInfo();
                     }} else {{
@@ -1052,14 +1062,19 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                         return;
                     }}
                 }}
-                state.kataTimer += dt;
+                // Process current action
                 const dur = state.kataAction[1];
+                state.kataTimer += dt;
                 if (state.kataTimer >= dur) {{
                     state.kataIdx++;
                     state.kataAction = null;
                     state.animating = false;
                     state.looping = false;
                     state.bowActive = false;
+                }}
+                // For pose moves, update progress for animation
+                if (['punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance'].includes(state.cmd)) {{
+                    state.poseProgress = Math.min(state.kataTimer / dur, 1.0);
                 }}
                 if (state.cmd === 'bow') state.bowProgress = Math.min(state.kataTimer / dur, 1.0);
                 return;
@@ -1087,6 +1102,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 else if (state.cmd === 'wave') dur = 2.0;
                 else if (state.cmd === 'frontflip' || state.cmd === 'backflip') dur = 1.5;
                 else if (state.cmd === 'bow') dur = 2.0;
+                else if (['punch_l','punch_r','kick_l','kick_r','block','stance'].includes(state.cmd)) {{
+                    dur = state.poseDuration || 10.0;
+                }}
                 if (state.cmd === 'bow' && state.bowActive) {{
                     state.bowProgress = Math.min(state.animTimer / dur, 1.0);
                 }}
@@ -1106,6 +1124,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             const amp = isRun ? 1.2 : 0.5;
             const swing = (state.cmd === 'walk' || isRun) ? Math.sin(state.walkCycle) * amp : 0;
 
+            // Reset all rotations
             leftArmGroup.rotation.x = 0;
             rightArmGroup.rotation.x = 0;
             leftForearmGroup.rotation.x = 0;
@@ -1115,8 +1134,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             leftLowerLegGroup.rotation.x = 0;
             rightLowerLegGroup.rotation.x = 0;
             torsoGroup.rotation.x = 0;
+            leftArmGroup.rotation.y = 0;
+            rightArmGroup.rotation.y = 0;
+            leftArmGroup.rotation.z = 0;
+            rightArmGroup.rotation.z = 0;
 
-            // Bow + Kata - use same as bow animation
+            // Bow + Kata - bow phase
             if (state.bowKataActive && state.bowKataPhase === 0) {{
                 const prog = state.bowProgress;
                 const ease = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
@@ -1125,6 +1148,43 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
+            // ---- Kata pose moves ----
+            const pose = state.cmd;
+            const p = state.poseProgress || 0; // 0..1
+            if (['punch_l','punch_r','kick_l','kick_r','block','stance'].includes(pose)) {{
+                // Apply poses based on progress (we'll use a smooth hold: full pose for most of time, maybe a quick motion at start)
+                // For simplicity, we'll just set the final pose for the whole duration (or ease in)
+                const ease = p < 0.2 ? p / 0.2 : 1.0; // quick ease in then hold
+                if (pose === 'punch_l') {{
+                    leftArmGroup.rotation.x = -1.2 * ease;
+                    leftForearmGroup.rotation.x = -1.0 * ease;
+                }} else if (pose === 'punch_r') {{
+                    rightArmGroup.rotation.x = -1.2 * ease;
+                    rightForearmGroup.rotation.x = -1.0 * ease;
+                }} else if (pose === 'kick_l') {{
+                    leftLegGroup.rotation.x = 0.8 * ease;
+                    leftLowerLegGroup.rotation.x = 0.6 * ease;
+                }} else if (pose === 'kick_r') {{
+                    rightLegGroup.rotation.x = 0.8 * ease;
+                    rightLowerLegGroup.rotation.x = 0.6 * ease;
+                }} else if (pose === 'block') {{
+                    leftArmGroup.rotation.x = -0.3 * ease;
+                    rightArmGroup.rotation.x = -0.3 * ease;
+                    leftArmGroup.rotation.y = 0.5 * ease;
+                    rightArmGroup.rotation.y = -0.5 * ease;
+                    leftForearmGroup.rotation.x = -0.5 * ease;
+                    rightForearmGroup.rotation.x = -0.5 * ease;
+                }} else if (pose === 'stance') {{
+                    leftArmGroup.rotation.x = -0.2 * ease;
+                    rightArmGroup.rotation.x = -0.2 * ease;
+                    leftLegGroup.rotation.x = 0.2 * ease;
+                    rightLegGroup.rotation.x = -0.2 * ease;
+                }}
+                robotGroup.position.y = 0.71;
+                return;
+            }}
+
+            // ---- Walk / Run ----
             if (state.cmd === 'walk' || isRun) {{
                 const armSwing = swing * 0.8;
                 const legSwing = swing * 0.6;
@@ -1140,6 +1200,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 rightLowerLegGroup.rotation.x = kneeSwing;
             }}
 
+            // ---- Jump ----
             if (state.cmd === 'jump' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.2, 1);
                 const y = 1.5 * 4 * t * (1 - t);
@@ -1148,6 +1209,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 robotGroup.position.y = 0.71;
             }}
 
+            // ---- Frontflip / Backflip ----
             if (state.cmd === 'frontflip' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.5, 1);
                 const y = 2.0 * 4 * t * (1 - t);
@@ -1155,7 +1217,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 robotGroup.rotation.x = t * 2 * Math.PI;
                 robotGroup.position.z = -0.3 * Math.sin(t * Math.PI);
             }}
-
             if (state.cmd === 'backflip' && state.animating) {{
                 const t = Math.min(state.animTimer / 1.5, 1);
                 const y = 2.0 * 4 * t * (1 - t);
@@ -1164,11 +1225,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 robotGroup.position.z = 0.3 * Math.sin(t * Math.PI);
             }}
 
+            // ---- Wave ----
             if (state.cmd === 'wave' && state.animating) {{
                 rightArmGroup.rotation.x = -0.8 + Math.sin(state.animTimer * 6) * 0.3;
                 rightForearmGroup.rotation.x = 0.2 + Math.sin(state.animTimer * 6 + 1) * 0.2;
             }}
 
+            // ---- Bow (non-kata) ----
             if (state.cmd === 'bow' && (state.bowActive || state.animating)) {{
                 const prog = state.bowActive ? state.bowProgress : Math.min(state.animTimer / 2.0, 1);
                 const ease = prog < 0.5 ? 2 * prog * prog : 1 - Math.pow(-2 * prog + 2, 2) / 2;
@@ -1203,14 +1266,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         // ---- Init ----
         state.cmd = state.initCmd;
         if (state.cmd === 'bowkata') {{
-            // Start bowkata sequence
             state.bowKataActive = true;
             state.bowKataPhase = 0;
             state.bowKataTimer = 0;
             state.bowActive = true;
             state.bowProgress = 0;
-            state.cmd = 'bow'; // will be overridden in update
-            state.soccerMode = false;
+            state.cmd = 'bow';
             updateStepInfo();
         }} else if (state.kataSeq.length > 0 && state.cmd !== 'bowkata') {{
             state.kataRunning = true;
@@ -1490,9 +1551,8 @@ with st.sidebar:
         else:
             st.warning(t('action_warning'))
 
-    # NEW: Bow + Kata button
+    # Bow + Kata button
     if st.button(t('bow_kata'), use_container_width=True):
-        st.session_state.kata = st.session_state.kata  # keep current kata selection
         st.session_state.command = "bowkata"
         st.session_state.last_action = "bowkata"
         st.rerun()
