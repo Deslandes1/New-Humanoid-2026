@@ -35,6 +35,7 @@ TRANSLATIONS = {
         "cmd_hint": "Type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence (starts and ends with a bow, each technique is fast and repeats for 20s).",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
+        "all_moves_demo": "🎯 All Moves Demo",
         "bow_kata": "🥋 Bow + Kata",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
@@ -86,6 +87,7 @@ TRANSLATIONS = {
         "cmd_hint": "Tapez un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète (commence et se termine par un salut, chaque technique rapide se répète pendant 20s).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
+        "all_moves_demo": "🎯 Démo de tous les mouvements",
         "bow_kata": "🥋 Salut + Kata",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
@@ -137,6 +139,7 @@ TRANSLATIONS = {
         "cmd_hint": "Escriba un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa (comienza y termina con una inclinación, cada técnica rápida se repite durante 20s).",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
+        "all_moves_demo": "🎯 Demostración de todos los movimientos",
         "bow_kata": "🥋 Inclinación + Kata",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
@@ -188,6 +191,7 @@ TRANSLATIONS = {
         "cmd_hint": "Digite um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa (começa e termina com uma reverência, cada técnica rápida se repete por 20s).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
+        "all_moves_demo": "🎯 Demonstração de todos os movimentos",
         "bow_kata": "🥋 Reverência + Kata",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
@@ -239,6 +243,7 @@ TRANSLATIONS = {
         "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列（以鞠躬开始和结束，每个技巧快速重复20秒）。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
+        "all_moves_demo": "🎯 所有动作演示",
         "bow_kata": "🥋 鞠躬 + 型 (Kata)",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
@@ -379,8 +384,6 @@ KATAS = {
 
 def get_kata_sequence(kata_name):
     # Each kata has a unique set of 4 distinct techniques, and starts and ends with a bow.
-    # Techniques: punch_l, punch_r, kick_l, kick_r, block, stance
-    # We'll define a unique combination for each kata.
     techniques_map = {
         "Taikyoku Shodan": [["punch_r", 20.0], ["kick_l", 20.0], ["block", 20.0], ["stance", 20.0]],
         "Heian Shodan": [["punch_l", 20.0], ["kick_r", 20.0], ["punch_r", 20.0], ["block", 20.0]],
@@ -394,9 +397,21 @@ def get_kata_sequence(kata_name):
         "Gojushiho": [["kick_r", 20.0], ["punch_r", 20.0], ["block", 20.0], ["stance", 20.0]]
     }
     techniques = techniques_map.get(kata_name, [["idle", 1.0]])
-    # Start with bow, then techniques, then end with bow
     sequence = [["bow", 2.0]] + techniques + [["bow", 2.0]]
     return sequence
+
+def get_demo_sequence():
+    # Demo of all basic moves
+    return [
+        ["bow", 2.0],
+        ["walk", 3.0],
+        ["run", 3.0],
+        ["jump", 2.0],
+        ["wave", 2.0],
+        ["frontflip", 2.0],
+        ["backflip", 2.0],
+        ["bow", 2.0]
+    ]
 
 # ---- Custom CSS - Light Blue Theme ----
 st.markdown("""
@@ -602,11 +617,17 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         belt_rank = ""
 
     valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow',
-                      'punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance', 'bowkata']
+                      'punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance', 'bowkata', 'allmoves']
     cmd_lower = command.lower() if command else "idle"
     anim_cmd = cmd_lower if cmd_lower in valid_commands else 'idle'
 
-    kata_sequence = get_kata_sequence(kata_name) if is_kata else []
+    # Determine sequence to run
+    if cmd_lower == "allmoves":
+        # Use demo sequence
+        kata_sequence = get_demo_sequence()
+        is_kata = False  # but we will treat it as a sequence anyway
+    else:
+        kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
 
     html = f"""
@@ -1559,8 +1580,16 @@ with st.sidebar:
 
     # Bow + Kata button
     if st.button(t('bow_kata'), use_container_width=True):
+        st.session_state.kata = st.session_state.kata  # keep current kata selection
         st.session_state.command = "bowkata"
         st.session_state.last_action = "bowkata"
+        st.rerun()
+
+    # NEW: All Moves Demo button
+    if st.button(t('all_moves_demo'), use_container_width=True):
+        st.session_state.kata = None  # clear kata
+        st.session_state.command = "allmoves"
+        st.session_state.last_action = "allmoves"
         st.rerun()
 
     st.markdown("---")
