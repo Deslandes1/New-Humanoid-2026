@@ -36,6 +36,7 @@ TRANSLATIONS = {
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
         "soccer_play": "⚽ Chene (Right Foot Bounce)",
+        "deploy_ball": "⚽ Deploy Ball (from waist)",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
         "speak_button": "🔊 Make Robot Speak",
@@ -87,6 +88,7 @@ TRANSLATIONS = {
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
         "soccer_play": "⚽ Chene (Bond du pied droit)",
+        "deploy_ball": "⚽ Déployer le ballon (depuis la taille)",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
         "speak_button": "🔊 Faire parler le robot",
@@ -138,6 +140,7 @@ TRANSLATIONS = {
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
         "soccer_play": "⚽ Chene (Bote con pie derecho)",
+        "deploy_ball": "⚽ Desplegar balón (desde la cintura)",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
         "speak_button": "🔊 Hacer hablar al robot",
@@ -189,6 +192,7 @@ TRANSLATIONS = {
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
         "soccer_play": "⚽ Chene (Bola no pé direito)",
+        "deploy_ball": "⚽ Lançar bola (da cintura)",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
         "speak_button": "🔊 Fazer o Robô Falar",
@@ -240,6 +244,7 @@ TRANSLATIONS = {
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
         "soccer_play": "⚽ 右脚控球 (Chene)",
+        "deploy_ball": "⚽ 弹出球 (从腰部)",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
         "speak_button": "🔊 让机器人说话",
@@ -598,6 +603,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
     valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow', 'soccer', 'ballout']
     cmd_lower = command.lower() if command else "idle"
+    # Also accept "ball out" with space
+    if cmd_lower == "ball out":
+        cmd_lower = "ballout"
     anim_cmd = cmd_lower if cmd_lower in valid_commands else 'idle'
 
     kata_sequence = get_kata_sequence(kata_name) if is_kata else []
@@ -985,7 +993,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             initCmd: '{anim_cmd}',
             validCmds: {json.dumps(valid_commands)},
             soccerMode: false,
-            // ---- NEW: ballout mode ----
             ballOutMode: false,
             ballOutTimer: 0,
             ballOutComplete: false,
@@ -1025,24 +1032,20 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             // ---- Ball Out deployment ----
             if (state.ballOutMode && !state.ballOutComplete) {{
                 state.ballOutTimer += dt;
-                const duration = 1.0; // seconds
+                const duration = 1.0;
                 const progress = Math.min(state.ballOutTimer / duration, 1.0);
-                // Ease in-out
                 const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
                 // Start position: inside waist (relative to robotGroup)
                 const startPos = new THREE.Vector3(0, 0.3, 0.3);
-                // End position: right foot (same as soccer)
-                const endPos = new THREE.Vector3(0.25, -0.5 + 0.2, 0.05); // footSurface = -0.5, ballRadius=0.2
-                // Interpolate
+                // End position: right foot, slightly forward to be visible
+                const endPos = new THREE.Vector3(0.25, -0.3, 0.15); // y = -0.5 + 0.2 = -0.3, z=0.15
                 const currentPos = new THREE.Vector3().lerpVectors(startPos, endPos, ease);
                 soccerBall.position.copy(currentPos);
-                // Rotate ball
                 soccerBall.rotation.x += dt * 1.5;
                 soccerBall.rotation.z += dt * 1.0;
                 if (progress >= 1) {{
                     state.ballOutComplete = true;
                     state.ballOutMode = false;
-                    // Transition to soccer mode (bouncing)
                     state.soccerMode = true;
                     state.cmd = 'run';
                     state.looping = true;
@@ -1060,7 +1063,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 const kneeHeight = -0.14;
                 const ballRadius = 0.2;
                 const horizontalPos = 0.25;
-                const footZ = 0.05;
+                const footZ = 0.15; // match the endPos z
                 const phase = state.walkCycle;
                 const bounce = Math.abs(Math.sin(phase));
                 const minY = footSurface + ballRadius;
@@ -1245,11 +1248,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             state.animating = true;
             updateStepInfo();
         }} else if (state.cmd === 'ballout') {{
-            // Start ball deployment from waist
             state.ballOutMode = true;
             state.ballOutTimer = 0;
             state.ballOutComplete = false;
-            state.cmd = 'idle'; // keep robot idle during deployment
+            state.cmd = 'idle';
             state.soccerMode = false;
             updateStepInfo();
         }} else if (state.kataSeq.length > 0) {{
@@ -1531,10 +1533,18 @@ with st.sidebar:
         else:
             st.warning(t('action_warning'))
 
+    # Soccer button (immediate bounce)
     if st.button(t('soccer_play'), use_container_width=True):
         st.session_state.kata = None
         st.session_state.command = "soccer"
         st.session_state.last_action = "soccer"
+        st.rerun()
+
+    # NEW: Deploy Ball button
+    if st.button(t('deploy_ball'), use_container_width=True):
+        st.session_state.kata = None
+        st.session_state.command = "ballout"
+        st.session_state.last_action = "ballout"
         st.rerun()
 
     st.markdown("---")
