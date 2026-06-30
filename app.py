@@ -32,7 +32,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Kata Performance",
         "commands": "🎮 Commands",
         "cmd_desc": "Walk and Run loop continuously. Jump, Wave, Frontflip, Backflip, Bow play once.",
-        "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.",
+        "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence (each move lasts 20 seconds).",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
         "bow_kata": "🥋 Bow + Kata",
@@ -83,7 +83,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Performance Kata",
         "commands": "🎮 Commandes",
         "cmd_desc": "Marche et Course en boucle continue. Saut, Salut, Saut périlleux avant, Saut périlleux arrière, Salutation joués une fois.",
-        "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète.",
+        "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète (chaque mouvement dure 20 secondes).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
         "bow_kata": "🥋 Salut + Kata",
@@ -134,7 +134,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Rendimiento Kata",
         "commands": "🎮 Comandos",
         "cmd_desc": "Caminar y Correr en bucle continuo. Saltar, Saludar, Mortal hacia adelante, Mortal hacia atrás, Inclinación se ejecutan una vez.",
-        "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa.",
+        "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa (cada movimiento dura 20 segundos).",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
         "bow_kata": "🥋 Inclinación + Kata",
@@ -185,7 +185,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 Performance Kata",
         "commands": "🎮 Comandos",
         "cmd_desc": "Andar e Correr em loop contínuo. Pular, Acenar, Mortal para frente, Mortal para trás, Reverência executados uma vez.",
-        "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa.",
+        "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa (cada movimento dura 20 segundos).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
         "bow_kata": "🥋 Reverência + Kata",
@@ -236,7 +236,7 @@ TRANSLATIONS = {
         "kata_performance": "🥋 型 (Kata) 表演",
         "commands": "🎮 指令",
         "cmd_desc": "行走和跑步循环持续。跳跃、挥手、前空翻、后空翻、鞠躬各执行一次。",
-        "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列。",
+        "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列（每个动作持续20秒）。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
         "bow_kata": "🥋 鞠躬 + 型 (Kata)",
@@ -378,19 +378,18 @@ KATAS = {
 }
 
 def get_kata_sequence(kata_name):
-    # Each kata now has a bow (2s) + 4 techniques of 10s each.
-    # We'll define a set of technique sequences for each kata.
+    # Each kata has a bow (2s) + 4 techniques of 20 seconds each.
     techniques = {
-        "Taikyoku Shodan": [["punch_r", 10.0], ["kick_l", 10.0], ["block", 10.0], ["stance", 10.0]],
-        "Heian Shodan": [["punch_l", 10.0], ["kick_r", 10.0], ["punch_r", 10.0], ["block", 10.0]],
-        "Heian Nidan": [["kick_l", 10.0], ["punch_r", 10.0], ["kick_r", 10.0], ["block", 10.0]],
-        "Heian Sandan": [["punch_r", 10.0], ["kick_r", 10.0], ["punch_l", 10.0], ["stance", 10.0]],
-        "Heian Yondan": [["kick_l", 10.0], ["block", 10.0], ["punch_r", 10.0], ["kick_r", 10.0]],
-        "Heian Godan": [["punch_l", 10.0], ["block", 10.0], ["kick_l", 10.0], ["punch_r", 10.0]],
-        "Tekki Shodan": [["stance", 10.0], ["punch_r", 10.0], ["kick_r", 10.0], ["block", 10.0]],
-        "Bassai Dai": [["punch_l", 10.0], ["kick_l", 10.0], ["punch_r", 10.0], ["kick_r", 10.0]],
-        "Kanku Dai": [["block", 10.0], ["punch_r", 10.0], ["kick_l", 10.0], ["punch_l", 10.0]],
-        "Gojushiho": [["kick_r", 10.0], ["punch_r", 10.0], ["block", 10.0], ["stance", 10.0]]
+        "Taikyoku Shodan": [["punch_r", 20.0], ["kick_l", 20.0], ["block", 20.0], ["stance", 20.0]],
+        "Heian Shodan": [["punch_l", 20.0], ["kick_r", 20.0], ["punch_r", 20.0], ["block", 20.0]],
+        "Heian Nidan": [["kick_l", 20.0], ["punch_r", 20.0], ["kick_r", 20.0], ["block", 20.0]],
+        "Heian Sandan": [["punch_r", 20.0], ["kick_r", 20.0], ["punch_l", 20.0], ["stance", 20.0]],
+        "Heian Yondan": [["kick_l", 20.0], ["block", 20.0], ["punch_r", 20.0], ["kick_r", 20.0]],
+        "Heian Godan": [["punch_l", 20.0], ["block", 20.0], ["kick_l", 20.0], ["punch_r", 20.0]],
+        "Tekki Shodan": [["stance", 20.0], ["punch_r", 20.0], ["kick_r", 20.0], ["block", 20.0]],
+        "Bassai Dai": [["punch_l", 20.0], ["kick_l", 20.0], ["punch_r", 20.0], ["kick_r", 20.0]],
+        "Kanku Dai": [["block", 20.0], ["punch_r", 20.0], ["kick_l", 20.0], ["punch_l", 20.0]],
+        "Gojushiho": [["kick_r", 20.0], ["punch_r", 20.0], ["block", 20.0], ["stance", 20.0]]
     }
     base = [["bow", 2.0]] + techniques.get(kata_name, [["idle", 1.0]])
     return base
@@ -598,7 +597,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         headband_color = "#ff0000"
         belt_rank = ""
 
-    # Extended command set for kata moves
     valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow',
                       'punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance', 'bowkata']
     cmd_lower = command.lower() if command else "idle"
@@ -950,9 +948,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             bowKataActive: false,
             bowKataPhase: 0,
             bowKataTimer: 0,
-            // For punch/kick/block/stance we track progress separately
             poseProgress: 0,
-            poseDuration: 10.0, // default
+            poseDuration: 20.0,
         }};
 
         // ---- UI update ----
@@ -1029,7 +1026,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                         state.kataAction = state.kataSeq[state.kataIdx];
                         state.kataTimer = 0;
                         const type = state.kataAction[0];
-                        // For kata moves, we set the cmd to the move type and set appropriate flags
                         if (type === 'walk' || type === 'run') {{
                             state.cmd = type; state.looping = true; state.animating = true; state.bowActive = false;
                         }} else if (type === 'idle') {{
@@ -1042,9 +1038,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                             state.animating = true;
                             state.bowActive = false;
                             state.poseProgress = 0;
-                            state.poseDuration = state.kataAction[1] || 10.0;
+                            state.poseDuration = state.kataAction[1] || 20.0;
                         }} else {{
-                            // fallback for other commands
                             state.cmd = type;
                             state.looping = false;
                             state.animating = true;
@@ -1062,7 +1057,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                         return;
                     }}
                 }}
-                // Process current action
                 const dur = state.kataAction[1];
                 state.kataTimer += dt;
                 if (state.kataTimer >= dur) {{
@@ -1072,7 +1066,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     state.looping = false;
                     state.bowActive = false;
                 }}
-                // For pose moves, update progress for animation
                 if (['punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance'].includes(state.cmd)) {{
                     state.poseProgress = Math.min(state.kataTimer / dur, 1.0);
                 }}
@@ -1080,7 +1073,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
-            // ---- Normal commands (skip if bowkata active) ----
+            // ---- Normal commands ----
             if (state.bowKataActive) return;
 
             if (state.cmd === 'idle') {{
@@ -1103,7 +1096,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 else if (state.cmd === 'frontflip' || state.cmd === 'backflip') dur = 1.5;
                 else if (state.cmd === 'bow') dur = 2.0;
                 else if (['punch_l','punch_r','kick_l','kick_r','block','stance'].includes(state.cmd)) {{
-                    dur = state.poseDuration || 10.0;
+                    dur = state.poseDuration || 20.0;
                 }}
                 if (state.cmd === 'bow' && state.bowActive) {{
                     state.bowProgress = Math.min(state.animTimer / dur, 1.0);
@@ -1150,11 +1143,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
             // ---- Kata pose moves ----
             const pose = state.cmd;
-            const p = state.poseProgress || 0; // 0..1
+            const p = state.poseProgress || 0;
             if (['punch_l','punch_r','kick_l','kick_r','block','stance'].includes(pose)) {{
-                // Apply poses based on progress (we'll use a smooth hold: full pose for most of time, maybe a quick motion at start)
-                // For simplicity, we'll just set the final pose for the whole duration (or ease in)
-                const ease = p < 0.2 ? p / 0.2 : 1.0; // quick ease in then hold
+                // Quick ease-in (20% of duration) then hold
+                const ease = p < 0.2 ? p / 0.2 : 1.0;
                 if (pose === 'punch_l') {{
                     leftArmGroup.rotation.x = -1.2 * ease;
                     leftForearmGroup.rotation.x = -1.0 * ease;
