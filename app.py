@@ -1414,7 +1414,8 @@ with st.sidebar:
         })();
     </script>
     """
-    st.components.v1.html(globe_html, height=220)
+    # Replace deprecated st.components.v1.html with st.iframe
+    st.iframe(globe_html, height=220, scrolling=False)
 
     st.markdown("---")
 
