@@ -36,6 +36,7 @@ TRANSLATIONS = {
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
         "all_moves_demo": "🎯 All Moves Demo (with kata moves)",
+        "munchako_demo": "🌀 Munchako Spin",
         "bow_kata": "🥋 Bow + Kata",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
@@ -88,6 +89,7 @@ TRANSLATIONS = {
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
         "all_moves_demo": "🎯 Démo de tous les mouvements (avec kata)",
+        "munchako_demo": "🌀 Spin Munchako",
         "bow_kata": "🥋 Salut + Kata",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
@@ -140,6 +142,7 @@ TRANSLATIONS = {
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
         "all_moves_demo": "🎯 Demostración de todos los movimientos (con kata)",
+        "munchako_demo": "🌀 Giro Munchako",
         "bow_kata": "🥋 Inclinación + Kata",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
@@ -192,6 +195,7 @@ TRANSLATIONS = {
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
         "all_moves_demo": "🎯 Demonstração de todos os movimentos (com kata)",
+        "munchako_demo": "🌀 Giro Munchako",
         "bow_kata": "🥋 Reverência + Kata",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
@@ -244,6 +248,7 @@ TRANSLATIONS = {
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
         "all_moves_demo": "🎯 所有动作演示（含型）",
+        "munchako_demo": "🌀 猛查科旋转",
         "bow_kata": "🥋 鞠躬 + 型 (Kata)",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
@@ -383,7 +388,6 @@ KATAS = {
 }
 
 def get_kata_sequence(kata_name):
-    # Each kata has a unique set of 4 distinct techniques, and starts and ends with a bow.
     techniques_map = {
         "Taikyoku Shodan": [["punch_r", 20.0], ["kick_l", 20.0], ["block", 20.0], ["stance", 20.0]],
         "Heian Shodan": [["punch_l", 20.0], ["kick_r", 20.0], ["punch_r", 20.0], ["block", 20.0]],
@@ -401,7 +405,6 @@ def get_kata_sequence(kata_name):
     return sequence
 
 def get_demo_sequence():
-    # All Moves Demo: Bow -> kata move -> basic move -> ... -> Bow
     return [
         ["bow", 2.0],
         ["punch_l", 2.0],
@@ -416,6 +419,13 @@ def get_demo_sequence():
         ["frontflip", 2.5],
         ["stance", 2.0],
         ["backflip", 2.5],
+        ["bow", 2.0]
+    ]
+
+def get_munchako_sequence():
+    return [
+        ["bow", 2.0],
+        ["munchako", 20.0],
         ["bow", 2.0]
     ]
 
@@ -623,13 +633,17 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         belt_rank = ""
 
     valid_commands = ['walk', 'run', 'jump', 'wave', 'frontflip', 'backflip', 'bow',
-                      'punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance', 'bowkata', 'allmoves']
+                      'punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance',
+                      'bowkata', 'allmoves', 'munchako']
     cmd_lower = command.lower() if command else "idle"
     anim_cmd = cmd_lower if cmd_lower in valid_commands else 'idle'
 
     # Determine sequence to run
     if cmd_lower == "allmoves":
         kata_sequence = get_demo_sequence()
+        is_kata = False
+    elif cmd_lower == "munchako":
+        kata_sequence = get_munchako_sequence()
         is_kata = False
     else:
         kata_sequence = get_kata_sequence(kata_name) if is_kata else []
@@ -842,7 +856,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         ball.position.set(0, 0.45, 0);
         head.add(ball);
 
-        // Headband: show if kata OR demo mode
+        // Headband: show if kata OR demo mode OR munchako
         const showHeadband = {str(show_headband or is_kata).lower()};
         if (showHeadband) {{
             const bandGeo = new THREE.TorusGeometry(0.3, 0.03, 8, 20);
@@ -982,6 +996,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             bowKataTimer: 0,
             poseProgress: 0,
             poseDuration: 20.0,
+            munchakoMode: false,
+            munchakoTimer: 0,
         }};
 
         // ---- UI update ----
@@ -1005,6 +1021,9 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     stepInfoEl.textContent = '🥋 Starting Kata...';
                     progressBar.style.width = '100%';
                 }}
+            }} else if (state.munchakoMode) {{
+                stepInfoEl.textContent = `🌀 Munchako Spin ${{Math.round(state.munchakoTimer)}}s`;
+                progressBar.style.width = (state.munchakoTimer / 20.0 * 100) + '%';
             }} else {{
                 if (state.cmd !== 'idle') {{
                     stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
@@ -1064,6 +1083,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                             state.cmd = 'idle'; state.looping = false; state.animating = false; state.bowActive = false;
                         }} else if (type === 'bow') {{
                             state.cmd = 'bow'; state.looping = false; state.animating = false; state.bowActive = true; state.bowProgress = 0;
+                        }} else if (type === 'munchako') {{
+                            state.cmd = 'munchako';
+                            state.looping = false;
+                            state.animating = true;
+                            state.bowActive = false;
+                            state.munchakoMode = true;
+                            state.munchakoTimer = 0;
                         }} else if (['punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance'].includes(type)) {{
                             state.cmd = type;
                             state.looping = false;
@@ -1085,6 +1111,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                         state.animating = false;
                         state.looping = false;
                         state.bowActive = false;
+                        state.munchakoMode = false;
                         updateStepInfo();
                         return;
                     }}
@@ -1096,6 +1123,11 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     state.walkCycle += dt * 2.2;
                 }} else if (state.cmd === 'run') {{
                     state.walkCycle += dt * 8.0;
+                }} else if (state.cmd === 'munchako') {{
+                    state.munchakoTimer += dt;
+                    if (state.munchakoTimer >= dur) {{
+                        // End of munchako step – will advance to next step naturally
+                    }}
                 }}
                 if (state.cmd === 'bow') {{
                     state.bowProgress = Math.min(state.kataTimer / dur, 1.0);
@@ -1110,6 +1142,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     state.animating = false;
                     state.looping = false;
                     state.bowActive = false;
+                    state.munchakoMode = false;
                 }}
                 return;
             }}
@@ -1172,6 +1205,12 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             rightArmGroup.rotation.y = 0;
             leftArmGroup.rotation.z = 0;
             rightArmGroup.rotation.z = 0;
+            // Reset robot rotation (except for munchako)
+            if (state.cmd !== 'munchako') {{
+                robotGroup.rotation.y = 0;
+                robotGroup.position.x = 0;
+                robotGroup.position.z = 0;
+            }}
 
             // Bow + Kata - bow phase
             if (state.bowKataActive && state.bowKataPhase === 0) {{
@@ -1182,9 +1221,32 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
+            // ---- Munchako Spinning ----
+            if (state.cmd === 'munchako' && state.munchakoMode) {{
+                // Spinning rotation
+                const spinSpeed = 6.0; // full rotations per second
+                const angle = state.munchakoTimer * spinSpeed * 2 * Math.PI;
+                robotGroup.rotation.y = angle;
+
+                // Arm movements – simulate throwing from hand to hand
+                const armAngle = Math.sin(state.munchakoTimer * 8) * 0.8;
+                leftArmGroup.rotation.x = -0.4 + 0.4 * Math.sin(state.munchakoTimer * 6);
+                rightArmGroup.rotation.x = -0.4 + 0.4 * Math.sin(state.munchakoTimer * 6 + Math.PI);
+                leftForearmGroup.rotation.x = -0.3 + 0.3 * Math.sin(state.munchakoTimer * 7);
+                rightForearmGroup.rotation.x = -0.3 + 0.3 * Math.sin(state.munchakoTimer * 7 + Math.PI);
+                // Slight bounce
+                robotGroup.position.y = 0.71 + 0.08 * Math.sin(state.munchakoTimer * 12);
+                // Slight side-to-side sway
+                robotGroup.position.x = 0.05 * Math.sin(state.munchakoTimer * 5);
+                robotGroup.position.z = 0.05 * Math.cos(state.munchakoTimer * 5.5);
+
+                // Keep torso upright
+                torsoGroup.rotation.x = 0;
+                return;
+            }}
+
             // ---- Kata pose moves (fast oscillations) ----
             const pose = state.cmd;
-            // Determine which timer to use: for kataRunning we use kataTimer, else animTimer
             const timer = state.kataRunning ? state.kataTimer : state.animTimer;
             if (['punch_l','punch_r','kick_l','kick_r','block','stance'].includes(pose)) {{
                 const speed = 16;
@@ -1240,7 +1302,6 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
             // ---- Jump ----
             if (state.cmd === 'jump') {{
-                // Use timer to compute jump arc
                 const dur = state.kataRunning ? (state.kataAction ? state.kataAction[1] : 2.0) : 1.2;
                 const t = Math.min(timer / dur, 1);
                 const y = 1.5 * 4 * t * (1 - t);
@@ -1295,7 +1356,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             prevTime = time;
             update(dt);
             animateRobot();
-            if (!state.kataRunning && !state.bowKataActive) {{
+            if (!state.kataRunning && !state.bowKataActive && !state.munchakoMode) {{
                 updateStepInfo();
             }}
             controls.update();
@@ -1600,7 +1661,7 @@ with st.sidebar:
 
     # Bow + Kata button
     if st.button(t('bow_kata'), use_container_width=True):
-        st.session_state.kata = st.session_state.kata  # keep current kata selection
+        st.session_state.kata = st.session_state.kata
         st.session_state.command = "bowkata"
         st.session_state.last_action = "bowkata"
         st.rerun()
@@ -1610,6 +1671,13 @@ with st.sidebar:
         st.session_state.kata = None
         st.session_state.command = "allmoves"
         st.session_state.last_action = "allmoves"
+        st.rerun()
+
+    # Munchako Spin button
+    if st.button(t('munchako_demo'), use_container_width=True):
+        st.session_state.kata = None
+        st.session_state.command = "munchako"
+        st.session_state.last_action = "munchako"
         st.rerun()
 
     st.markdown("---")
@@ -1652,8 +1720,7 @@ col_view, col_info = st.columns([3, 1])
 with col_view:
     st.markdown(f"### {t('robot_view')}")
     cache_buster = random.randint(100000, 999999)
-    # Pass show_headband=True when command is allmoves
-    show_headband = (st.session_state.command == "allmoves")
+    show_headband = (st.session_state.command in ["allmoves", "munchako"])
     viewer_html = get_robot_viewer_html(
         st.session_state.robot_selected,
         st.session_state.command if st.session_state.kata is None else "",
