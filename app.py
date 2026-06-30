@@ -35,7 +35,7 @@ TRANSLATIONS = {
         "cmd_hint": "Type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence (starts and ends with a bow, each technique is fast and repeats for 20s).",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
-        "all_moves_demo": "🎯 All Moves Demo",
+        "all_moves_demo": "🎯 All Moves Demo (with kata moves)",
         "bow_kata": "🥋 Bow + Kata",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
@@ -87,7 +87,7 @@ TRANSLATIONS = {
         "cmd_hint": "Tapez un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète (commence et se termine par un salut, chaque technique rapide se répète pendant 20s).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
-        "all_moves_demo": "🎯 Démo de tous les mouvements",
+        "all_moves_demo": "🎯 Démo de tous les mouvements (avec kata)",
         "bow_kata": "🥋 Salut + Kata",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
@@ -139,7 +139,7 @@ TRANSLATIONS = {
         "cmd_hint": "Escriba un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa (comienza y termina con una inclinación, cada técnica rápida se repite durante 20s).",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
-        "all_moves_demo": "🎯 Demostración de todos los movimientos",
+        "all_moves_demo": "🎯 Demostración de todos los movimientos (con kata)",
         "bow_kata": "🥋 Inclinación + Kata",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
@@ -191,7 +191,7 @@ TRANSLATIONS = {
         "cmd_hint": "Digite um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa (começa e termina com uma reverência, cada técnica rápida se repete por 20s).",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
-        "all_moves_demo": "🎯 Demonstração de todos os movimentos",
+        "all_moves_demo": "🎯 Demonstração de todos os movimentos (com kata)",
         "bow_kata": "🥋 Reverência + Kata",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
@@ -243,7 +243,7 @@ TRANSLATIONS = {
         "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列（以鞠躬开始和结束，每个技巧快速重复20秒）。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
-        "all_moves_demo": "🎯 所有动作演示",
+        "all_moves_demo": "🎯 所有动作演示（含型）",
         "bow_kata": "🥋 鞠躬 + 型 (Kata)",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
@@ -401,14 +401,21 @@ def get_kata_sequence(kata_name):
     return sequence
 
 def get_demo_sequence():
-    # Demo of all basic moves
+    # All Moves Demo: Bow -> kata move -> basic move -> ... -> Bow
+    # Each kata move lasts 2s (quick single move), each basic move 2-3s.
     return [
         ["bow", 2.0],
+        ["punch_l", 2.0],
         ["walk", 3.0],
+        ["punch_r", 2.0],
         ["run", 3.0],
+        ["kick_l", 2.0],
         ["jump", 2.0],
+        ["kick_r", 2.0],
         ["wave", 2.0],
+        ["block", 2.0],
         ["frontflip", 2.0],
+        ["stance", 2.0],
         ["backflip", 2.0],
         ["bow", 2.0]
     ]
@@ -623,9 +630,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
     # Determine sequence to run
     if cmd_lower == "allmoves":
-        # Use demo sequence
         kata_sequence = get_demo_sequence()
-        is_kata = False  # but we will treat it as a sequence anyway
+        is_kata = False
     else:
         kata_sequence = get_kata_sequence(kata_name) if is_kata else []
     kata_sequence_json = json.dumps(kata_sequence)
@@ -1170,29 +1176,24 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             const pose = state.cmd;
             const t = state.animTimer || 0;
             if (['punch_l','punch_r','kick_l','kick_r','block','stance'].includes(pose)) {{
+                // For short durations (like 2s in demo), we still do oscillations but they'll be quick.
+                // Use a speed factor to make it look like a single fast move.
+                const speed = 16; // oscillations per second
+                const osc = 0.5 + 0.5 * Math.sin(t * speed);
                 if (pose === 'punch_l') {{
-                    const speed = 16;
-                    const punch = 0.5 + 0.5 * Math.sin(t * speed);
-                    leftArmGroup.rotation.x = -1.2 * punch;
-                    leftForearmGroup.rotation.x = -1.0 * punch;
+                    leftArmGroup.rotation.x = -1.2 * osc;
+                    leftForearmGroup.rotation.x = -1.0 * osc;
                 }} else if (pose === 'punch_r') {{
-                    const speed = 16;
-                    const punch = 0.5 + 0.5 * Math.sin(t * speed);
-                    rightArmGroup.rotation.x = -1.2 * punch;
-                    rightForearmGroup.rotation.x = -1.0 * punch;
+                    rightArmGroup.rotation.x = -1.2 * osc;
+                    rightForearmGroup.rotation.x = -1.0 * osc;
                 }} else if (pose === 'kick_l') {{
-                    const speed = 12;
-                    const kick = 0.5 + 0.5 * Math.sin(t * speed);
-                    leftLegGroup.rotation.x = 0.8 * kick;
-                    leftLowerLegGroup.rotation.x = 0.6 * kick;
+                    leftLegGroup.rotation.x = 0.8 * osc;
+                    leftLowerLegGroup.rotation.x = 0.6 * osc;
                 }} else if (pose === 'kick_r') {{
-                    const speed = 12;
-                    const kick = 0.5 + 0.5 * Math.sin(t * speed);
-                    rightLegGroup.rotation.x = 0.8 * kick;
-                    rightLowerLegGroup.rotation.x = 0.6 * kick;
+                    rightLegGroup.rotation.x = 0.8 * osc;
+                    rightLowerLegGroup.rotation.x = 0.6 * osc;
                 }} else if (pose === 'block') {{
-                    const speed = 10;
-                    const block = 0.5 + 0.5 * Math.sin(t * speed);
+                    const block = 0.5 + 0.5 * Math.sin(t * 10);
                     leftArmGroup.rotation.x = -0.3 * block;
                     rightArmGroup.rotation.x = -0.3 * block;
                     leftArmGroup.rotation.y = 0.5 * block;
@@ -1200,8 +1201,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     leftForearmGroup.rotation.x = -0.5 * block;
                     rightForearmGroup.rotation.x = -0.5 * block;
                 }} else if (pose === 'stance') {{
-                    const speed = 3;
-                    const sway = Math.sin(t * speed);
+                    const sway = Math.sin(t * 3);
                     leftLegGroup.rotation.x = 0.1 * sway;
                     rightLegGroup.rotation.x = -0.1 * sway;
                     leftArmGroup.rotation.x = -0.1 * sway;
@@ -1587,7 +1587,7 @@ with st.sidebar:
 
     # NEW: All Moves Demo button
     if st.button(t('all_moves_demo'), use_container_width=True):
-        st.session_state.kata = None  # clear kata
+        st.session_state.kata = None
         st.session_state.command = "allmoves"
         st.session_state.last_action = "allmoves"
         st.rerun()
