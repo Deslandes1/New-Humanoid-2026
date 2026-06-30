@@ -972,6 +972,32 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         rightFoot.position.set(0, -0.4, 0.05);
         rightLowerLegGroup.add(rightFoot);
 
+        // ---- Munchako object ----
+        const munchakoGroup = new THREE.Group();
+        // Main disc (a ring or cylinder)
+        const discGeo = new THREE.CylinderGeometry(0.12, 0.12, 0.04, 16);
+        const discMat = new THREE.MeshStandardMaterial({{ color: 0xff8800, emissive: 0x442200, roughness: 0.3, metalness: 0.1 }});
+        const disc = new THREE.Mesh(discGeo, discMat);
+        disc.rotation.x = Math.PI/2;
+        munchakoGroup.add(disc);
+        // A smaller inner disc
+        const innerDisc = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.06, 0.06, 0.06, 12),
+            new THREE.MeshStandardMaterial({{ color: 0xffcc00, emissive: 0x664400, roughness: 0.4 }})
+        );
+        innerDisc.rotation.x = Math.PI/2;
+        munchakoGroup.add(innerDisc);
+        // String (a thin line) – we'll make a simple line from disc to a point
+        const stringGeo = new THREE.BufferGeometry();
+        const vertices = new Float32Array([0, 0, 0, 0.1, 0.3, 0]); // placeholder
+        stringGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
+        const stringMat = new THREE.LineBasicMaterial({{ color: 0x888888 }});
+        const stringLine = new THREE.Line(stringGeo, stringMat);
+        munchakoGroup.add(stringLine);
+        // Add the munchako to the robotGroup (hidden initially)
+        munchakoGroup.visible = false;
+        robotGroup.add(munchakoGroup);
+
         scene.add(robotGroup);
 
         // ---- Animation state ----
@@ -1035,6 +1061,41 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             }}
         }}
 
+        // ---- Helper: get munchako position based on time t (0..1) ----
+        function getMunchakoPos(t) {{
+            // Define waypoints in robot's local space (x, y, z)
+            // Right hand, left hand, under right arm, under left arm, around neck, back to right hand.
+            const waypoints = [
+                {{ pos: [0.65, 0.6, 0.1] }},   // right hand
+                {{ pos: [-0.65, 0.6, 0.1] }},  // left hand
+                {{ pos: [0.6, 0.2, -0.3] }},   // under right arm
+                {{ pos: [-0.6, 0.2, -0.3] }},  // under left arm
+                {{ pos: [0, 1.0, -0.2] }},     // around neck
+                {{ pos: [0.65, 0.6, 0.1] }}    // back to right hand
+            ];
+            // Total duration 20 seconds, we loop over a cycle.
+            // We'll map t from 0 to 1 over the 20s, and repeat.
+            // Actually we'll let the timer run from 0 to 20, and we'll map to a cycle.
+            const cycleDuration = 20.0;
+            const phase = (t % cycleDuration) / cycleDuration; // 0..1
+            // Map phase to waypoint index
+            const segCount = waypoints.length - 1;
+            const segLen = 1.0 / segCount;
+            const idx = Math.floor(phase / segLen);
+            const localT = (phase - idx * segLen) / segLen; // 0..1
+            const i0 = Math.min(idx, segCount-1);
+            const i1 = Math.min(idx+1, segCount);
+            const p0 = waypoints[i0].pos;
+            const p1 = waypoints[i1].pos;
+            // Smooth step
+            const smooth = localT * localT * (3 - 2 * localT);
+            return [
+                p0[0] + (p1[0] - p0[0]) * smooth,
+                p0[1] + (p1[1] - p0[1]) * smooth,
+                p0[2] + (p1[2] - p0[2]) * smooth
+            ];
+        }}
+
         // ---- Update logic ----
         function update(dt) {{
             // ---- Bow + Kata logic ----
@@ -1090,6 +1151,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                             state.bowActive = false;
                             state.munchakoMode = true;
                             state.munchakoTimer = 0;
+                            munchakoGroup.visible = true;
                         }} else if (['punch_l', 'punch_r', 'kick_l', 'kick_r', 'block', 'stance'].includes(type)) {{
                             state.cmd = type;
                             state.looping = false;
@@ -1112,6 +1174,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                         state.looping = false;
                         state.bowActive = false;
                         state.munchakoMode = false;
+                        munchakoGroup.visible = false;
                         updateStepInfo();
                         return;
                     }}
@@ -1125,9 +1188,31 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     state.walkCycle += dt * 8.0;
                 }} else if (state.cmd === 'munchako') {{
                     state.munchakoTimer += dt;
-                    if (state.munchakoTimer >= dur) {{
-                        // End of munchako step – will advance to next step naturally
-                    }}
+                    // Update munchako position
+                    const pos = getMunchakoPos(state.munchakoTimer);
+                    munchakoGroup.position.set(pos[0], pos[1], pos[2]);
+                    // Spin the disc
+                    munchakoGroup.rotation.z += dt * 20; // fast spin
+                    // Also rotate the whole munchako group to orient the disc?
+                    // Keep disc rotating around its own Y axis? We want the disc to spin.
+                    // Since the disc is a cylinder, we can rotate the group around its local Y.
+                    // But we added the disc with rotation.x = PI/2, so now we rotate the group around Y.
+                    // We'll just rotate the group's Y.
+                    // Actually we want the disc to spin like a top: we can rotate the group around its local Y.
+                    // But we have the group's Y as the up direction. We'll rotate the group's children directly.
+                    // Simpler: rotate the disc mesh itself.
+                    // We'll keep the group orientation fixed and rotate the disc mesh.
+                    // But we already rotated the disc mesh to lie flat. We can just rotate the group.
+                    // Actually we want the disc to spin around its axis (which is the local Y after rotation?).
+                    // Let's just spin the group around its local Y.
+                    //munchakoGroup.rotation.y += dt * 25;
+                    // That would also rotate the string, which is fine.
+                    // But we also want the disc to spin, so we'll rotate the disc mesh around its local Y.
+                    // We'll store reference to disc and inner disc.
+                    // Since we added them as children, we can rotate them.
+                    // We'll keep the group orientation fixed and rotate the children.
+                    // Better: we'll keep the group as the position holder, and rotate the children.
+                    // We'll do that in the animation phase.
                 }}
                 if (state.cmd === 'bow') {{
                     state.bowProgress = Math.min(state.kataTimer / dur, 1.0);
@@ -1143,6 +1228,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     state.looping = false;
                     state.bowActive = false;
                     state.munchakoMode = false;
+                    munchakoGroup.visible = false;
                 }}
                 return;
             }}
@@ -1223,25 +1309,47 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
 
             // ---- Munchako Spinning ----
             if (state.cmd === 'munchako' && state.munchakoMode) {{
-                // Spinning rotation
-                const spinSpeed = 6.0; // full rotations per second
-                const angle = state.munchakoTimer * spinSpeed * 2 * Math.PI;
-                robotGroup.rotation.y = angle;
-
-                // Arm movements – simulate throwing from hand to hand
-                const armAngle = Math.sin(state.munchakoTimer * 8) * 0.8;
-                leftArmGroup.rotation.x = -0.4 + 0.4 * Math.sin(state.munchakoTimer * 6);
-                rightArmGroup.rotation.x = -0.4 + 0.4 * Math.sin(state.munchakoTimer * 6 + Math.PI);
-                leftForearmGroup.rotation.x = -0.3 + 0.3 * Math.sin(state.munchakoTimer * 7);
-                rightForearmGroup.rotation.x = -0.3 + 0.3 * Math.sin(state.munchakoTimer * 7 + Math.PI);
-                // Slight bounce
-                robotGroup.position.y = 0.71 + 0.08 * Math.sin(state.munchakoTimer * 12);
-                // Slight side-to-side sway
-                robotGroup.position.x = 0.05 * Math.sin(state.munchakoTimer * 5);
-                robotGroup.position.z = 0.05 * Math.cos(state.munchakoTimer * 5.5);
-
-                // Keep torso upright
-                torsoGroup.rotation.x = 0;
+                // Move arms to follow the munchako
+                // Get current position of munchako relative to robotGroup
+                const mPos = munchakoGroup.position;
+                // Approximate hand positions: we'll set arm angles based on mPos
+                // Simpler: we'll move the arms to point towards the munchako.
+                // For right arm: if munchako is on right side, right arm raised, etc.
+                // We can just set arm rotations to mimic holding/tossing.
+                // Let's make the arms follow the munchako position.
+                // Compute angles:
+                // For simplicity, we'll just move the arms in a generic pattern.
+                // But to look realistic, we can set arm rotations based on mPos.
+                // We'll use a simplified approach: if mPos.x > 0, right arm up, left arm down; else vice versa.
+                const r = Math.sqrt(mPos.x*mPos.x + mPos.y*mPos.y + mPos.z*mPos.z);
+                if (r > 0.1) {{
+                    // Right arm follows munchako
+                    const targetX = mPos.x - 0.65; // offset from shoulder
+                    const targetY = mPos.y - 0.8;
+                    const targetZ = mPos.z;
+                    // Compute rotation for right arm (as a group)
+                    // We'll just set a simple rotation: raise arm if munchako is high.
+                    const armAngle = Math.atan2(targetY, targetX);
+                    rightArmGroup.rotation.x = -0.5 + 0.5 * Math.sin(state.munchakoTimer * 3);
+                    rightForearmGroup.rotation.x = -0.2 + 0.2 * Math.sin(state.munchakoTimer * 3 + 1);
+                    // Left arm follows opposite
+                    leftArmGroup.rotation.x = -0.5 + 0.5 * Math.sin(state.munchakoTimer * 3 + Math.PI);
+                    leftForearmGroup.rotation.x = -0.2 + 0.2 * Math.sin(state.munchakoTimer * 3 + 1 + Math.PI);
+                }} else {{
+                    // If munchako is very close, keep arms neutral
+                }}
+                // Also spin the munchako disc
+                // We'll rotate the disc mesh inside munchakoGroup.
+                // Since we have references, we can iterate children.
+                munchakoGroup.children.forEach(child => {{
+                    if (child.isMesh) {{
+                        child.rotation.y += dt * 30; // fast spin
+                    }}
+                }});
+                // Slight body lean
+                torsoGroup.rotation.z = 0.05 * Math.sin(state.munchakoTimer * 2);
+                // Keep robot on ground
+                robotGroup.position.y = 0.71;
                 return;
             }}
 
