@@ -1496,9 +1496,10 @@ with col_view:
         cache_buster
     )
 
-    # Use st.components.v1.html with a dynamic key to force a full remount
-    # (despite deprecation, it still works reliably for this use case)
-    st.components.v1.html(viewer_html, height=650, width=700, key=f"viewer_{cache_buster}")
+    # Encode to base64 and use st.iframe – this forces a full reload when content changes
+    viewer_b64 = base64.b64encode(viewer_html.encode('utf-8')).decode('utf-8')
+    viewer_src = f"data:text/html;charset=utf-8;base64,{viewer_b64}"
+    st.iframe(viewer_src, height=650, width=700)
 
 with col_info:
     st.markdown(f"""
