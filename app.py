@@ -1035,10 +1035,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 const duration = 1.0;
                 const progress = Math.min(state.ballOutTimer / duration, 1.0);
                 const ease = progress < 0.5 ? 2 * progress * progress : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-                // Start position: inside waist (relative to robotGroup)
-                const startPos = new THREE.Vector3(0, 0.3, 0.3);
-                // End position: right foot, slightly forward to be visible
-                const endPos = new THREE.Vector3(0.25, -0.3, 0.15); // y = -0.5 + 0.2 = -0.3, z=0.15
+                // Start position: front of waist (negative Z)
+                const startPos = new THREE.Vector3(0, 0.3, -0.3);
+                // End position: right foot, front side (negative Z)
+                const endPos = new THREE.Vector3(0.25, -0.3, -0.15);
                 const currentPos = new THREE.Vector3().lerpVectors(startPos, endPos, ease);
                 soccerBall.position.copy(currentPos);
                 soccerBall.rotation.x += dt * 1.5;
@@ -1063,7 +1063,8 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 const kneeHeight = -0.14;
                 const ballRadius = 0.2;
                 const horizontalPos = 0.25;
-                const footZ = 0.15; // match the endPos z
+                // Now the ball is in front: Z negative
+                const footZ = -0.15;
                 const phase = state.walkCycle;
                 const bounce = Math.abs(Math.sin(phase));
                 const minY = footSurface + ballRadius;
