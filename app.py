@@ -35,7 +35,7 @@ TRANSLATIONS = {
         "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
-        "soccer_play": "⚽ Chene (Left Foot Bounce)",
+        "soccer_play": "⚽ Chene (Right Foot Bounce)",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
         "speak_button": "🔊 Make Robot Speak",
@@ -86,7 +86,7 @@ TRANSLATIONS = {
         "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
-        "soccer_play": "⚽ Chene (Bond du pied gauche)",
+        "soccer_play": "⚽ Chene (Bond du pied droit)",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
         "speak_button": "🔊 Faire parler le robot",
@@ -137,7 +137,7 @@ TRANSLATIONS = {
         "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa.",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
-        "soccer_play": "⚽ Chene (Bote con pie izquierdo)",
+        "soccer_play": "⚽ Chene (Bote con pie derecho)",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
         "speak_button": "🔊 Hacer hablar al robot",
@@ -188,7 +188,7 @@ TRANSLATIONS = {
         "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
-        "soccer_play": "⚽ Chene (Bola no pé esquerdo)",
+        "soccer_play": "⚽ Chene (Bola no pé direito)",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
         "speak_button": "🔊 Fazer o Robô Falar",
@@ -239,7 +239,7 @@ TRANSLATIONS = {
         "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
-        "soccer_play": "⚽ 左脚控球 (Chene)",
+        "soccer_play": "⚽ 右脚控球 (Chene)",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
         "speak_button": "🔊 让机器人说话",
@@ -571,7 +571,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (left foot bounce) ----
+# ---- 3D Viewer HTML generator (right foot bounce) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster=0):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -1007,7 +1007,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 progressBar.style.width = '100%';
             }} else {{
                 if (state.soccerMode && state.cmd === 'run') {{
-                    stepInfoEl.textContent = '⚽ Left Foot Bounce';
+                    stepInfoEl.textContent = '⚽ Right Foot Bounce';
                     progressBar.style.width = '100%';
                 }} else if (state.cmd !== 'idle') {{
                     stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
@@ -1064,15 +1064,15 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
-            // ---- Soccer / Left Foot Bounce ----
+            // ---- Soccer / Right Foot Bounce ----
             if (state.soccerMode && state.cmd === 'run') {{
                 // Same speed as before
                 state.walkCycle += dt * 3.5;
 
-                // Foot surface (left foot) and knee height
-                const footSurface = -0.55;   // top of left foot
+                // Right foot surface (grid level) and knee height
+                const footSurface = -0.55;   // top of right foot
                 const kneeHeight = -0.25;    // just below knee
-                const horizontalPos = -0.25; // left foot x position
+                const horizontalPos = 0.25;  // right foot x position
                 const phase = state.walkCycle;
                 // Smooth bounce using abs(sin) 
                 const bounce = Math.abs(Math.sin(phase));
@@ -1149,7 +1149,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             rightLowerLegGroup.rotation.x = 0;
             torsoGroup.rotation.x = 0;
 
-            // Soccer / Left Foot Bounce: lean backward, arms back for balance
+            // Soccer / Right Foot Bounce: lean backward, arms back for balance
             if (isSoccer) {{
                 // Lean backward slightly
                 torsoGroup.rotation.x = -0.12;
