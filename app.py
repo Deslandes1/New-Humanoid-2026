@@ -987,14 +987,14 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         );
         innerDisc.rotation.x = Math.PI/2;
         munchakoGroup.add(innerDisc);
-        // String (a thin line) – we'll make a simple line from disc to a point
+        // Add a string (a line)
         const stringGeo = new THREE.BufferGeometry();
-        const vertices = new Float32Array([0, 0, 0, 0.1, 0.3, 0]); // placeholder
+        const vertices = new Float32Array([0, -0.05, 0, 0, 0.25, 0]);
         stringGeo.setAttribute('position', new THREE.BufferAttribute(vertices, 3));
         const stringMat = new THREE.LineBasicMaterial({{ color: 0x888888 }});
         const stringLine = new THREE.Line(stringGeo, stringMat);
         munchakoGroup.add(stringLine);
-        // Add the munchako to the robotGroup (hidden initially)
+        // Hide initially
         munchakoGroup.visible = false;
         robotGroup.add(munchakoGroup);
 
@@ -1061,39 +1061,60 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             }}
         }}
 
-        // ---- Helper: get munchako position based on time t (0..1) ----
-        function getMunchakoPos(t) {{
-            // Define waypoints in robot's local space (x, y, z)
-            // Right hand, left hand, under right arm, under left arm, around neck, back to right hand.
-            const waypoints = [
-                {{ pos: [0.65, 0.6, 0.1] }},   // right hand
-                {{ pos: [-0.65, 0.6, 0.1] }},  // left hand
-                {{ pos: [0.6, 0.2, -0.3] }},   // under right arm
-                {{ pos: [-0.6, 0.2, -0.3] }},  // under left arm
-                {{ pos: [0, 1.0, -0.2] }},     // around neck
-                {{ pos: [0.65, 0.6, 0.1] }}    // back to right hand
+        // ---- Munchako keyframes ----
+        // Defines a sequence: [time in seconds, position (x,y,z), leftArmRotation (x,y,z), rightArmRotation (x,y,z)]
+        // We'll use 8 keyframes over 20s.
+        function getMunchakoState(t) {{
+            // t in [0,20]
+            // Cycle through a loop of poses
+            const cycle = 20.0;
+            const phase = (t % cycle) / cycle; // 0..1
+
+            // Keyframes: we'll use 7 keyframes for the loop
+            const keyframes = [
+                {{ time: 0.0, pos: [0.65, 0.6, 0.1], leftArm: [0,0,0], rightArm: [-0.5,0,0] }},   // Right hand start
+                {{ time: 0.15, pos: [0.3, 0.7, 0.2], leftArm: [0,0,0], rightArm: [-0.8,0,0] }},    // Throwing to left
+                {{ time: 0.3, pos: [-0.65, 0.6, 0.1], leftArm: [-0.5,0,0], rightArm: [0,0,0] }},  // Left hand catch
+                {{ time: 0.45, pos: [0.6, 0.2, -0.3], leftArm: [-0.2,0,0], rightArm: [-0.3,0,0] }}, // Under right arm
+                {{ time: 0.6, pos: [-0.6, 0.2, -0.3], leftArm: [-0.3,0,0], rightArm: [-0.2,0,0] }}, // Under left arm
+                {{ time: 0.75, pos: [0, 1.0, -0.2], leftArm: [-0.1,0,0], rightArm: [-0.1,0,0] }},   // Around neck
+                {{ time: 0.9, pos: [-0.65, 0.6, 0.1], leftArm: [-0.5,0,0], rightArm: [0,0,0] }},   // Back to left hand
+                {{ time: 1.0, pos: [0.65, 0.6, 0.1], leftArm: [0,0,0], rightArm: [-0.5,0,0] }},   // Return to right hand
             ];
-            // Total duration 20 seconds, we loop over a cycle.
-            // We'll map t from 0 to 1 over the 20s, and repeat.
-            // Actually we'll let the timer run from 0 to 20, and we'll map to a cycle.
-            const cycleDuration = 20.0;
-            const phase = (t % cycleDuration) / cycleDuration; // 0..1
-            // Map phase to waypoint index
-            const segCount = waypoints.length - 1;
+
+            // Find which two keyframes we're between
+            const totalKeyframes = keyframes.length;
+            // We'll map phase to a segment
+            const segCount = totalKeyframes - 1;
             const segLen = 1.0 / segCount;
             const idx = Math.floor(phase / segLen);
-            const localT = (phase - idx * segLen) / segLen; // 0..1
             const i0 = Math.min(idx, segCount-1);
             const i1 = Math.min(idx+1, segCount);
-            const p0 = waypoints[i0].pos;
-            const p1 = waypoints[i1].pos;
+            const localT = (phase - i0 * segLen) / segLen; // 0..1
+
+            const kf0 = keyframes[i0];
+            const kf1 = keyframes[i1];
+
             // Smooth step
             const smooth = localT * localT * (3 - 2 * localT);
-            return [
-                p0[0] + (p1[0] - p0[0]) * smooth,
-                p0[1] + (p1[1] - p0[1]) * smooth,
-                p0[2] + (p1[2] - p0[2]) * smooth
+
+            const pos = [
+                kf0.pos[0] + (kf1.pos[0] - kf0.pos[0]) * smooth,
+                kf0.pos[1] + (kf1.pos[1] - kf0.pos[1]) * smooth,
+                kf0.pos[2] + (kf1.pos[2] - kf0.pos[2]) * smooth
             ];
+            const lArm = [
+                kf0.leftArm[0] + (kf1.leftArm[0] - kf0.leftArm[0]) * smooth,
+                kf0.leftArm[1] + (kf1.leftArm[1] - kf0.leftArm[1]) * smooth,
+                kf0.leftArm[2] + (kf1.leftArm[2] - kf0.leftArm[2]) * smooth
+            ];
+            const rArm = [
+                kf0.rightArm[0] + (kf1.rightArm[0] - kf0.rightArm[0]) * smooth,
+                kf0.rightArm[1] + (kf1.rightArm[1] - kf0.rightArm[1]) * smooth,
+                kf0.rightArm[2] + (kf1.rightArm[2] - kf0.rightArm[2]) * smooth
+            ];
+
+            return {{ pos, leftArm: lArm, rightArm: rArm }};
         }}
 
         // ---- Update logic ----
@@ -1188,31 +1209,26 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     state.walkCycle += dt * 8.0;
                 }} else if (state.cmd === 'munchako') {{
                     state.munchakoTimer += dt;
-                    // Update munchako position
-                    const pos = getMunchakoPos(state.munchakoTimer);
-                    munchakoGroup.position.set(pos[0], pos[1], pos[2]);
-                    // Spin the disc
-                    munchakoGroup.rotation.z += dt * 20; // fast spin
-                    // Also rotate the whole munchako group to orient the disc?
-                    // Keep disc rotating around its own Y axis? We want the disc to spin.
-                    // Since the disc is a cylinder, we can rotate the group around its local Y.
-                    // But we added the disc with rotation.x = PI/2, so now we rotate the group around Y.
-                    // We'll just rotate the group's Y.
-                    // Actually we want the disc to spin like a top: we can rotate the group around its local Y.
-                    // But we have the group's Y as the up direction. We'll rotate the group's children directly.
-                    // Simpler: rotate the disc mesh itself.
-                    // We'll keep the group orientation fixed and rotate the disc mesh.
-                    // But we already rotated the disc mesh to lie flat. We can just rotate the group.
-                    // Actually we want the disc to spin around its axis (which is the local Y after rotation?).
-                    // Let's just spin the group around its local Y.
-                    //munchakoGroup.rotation.y += dt * 25;
-                    // That would also rotate the string, which is fine.
-                    // But we also want the disc to spin, so we'll rotate the disc mesh around its local Y.
-                    // We'll store reference to disc and inner disc.
-                    // Since we added them as children, we can rotate them.
-                    // We'll keep the group orientation fixed and rotate the children.
-                    // Better: we'll keep the group as the position holder, and rotate the children.
-                    // We'll do that in the animation phase.
+                    // Get munchako state
+                    const mState = getMunchakoState(state.munchakoTimer);
+                    munchakoGroup.position.set(mState.pos[0], mState.pos[1], mState.pos[2]);
+                    // Rotate disc meshes inside munchakoGroup
+                    munchakoGroup.children.forEach(child => {{
+                        if (child.isMesh) {{
+                            child.rotation.y += dt * 30; // fast spin
+                        }}
+                    }});
+                    // Set arm rotations (upper arm and forearm)
+                    // We'll set leftArmGroup rotation.x based on mState.leftArm[0], etc.
+                    leftArmGroup.rotation.x = mState.leftArm[0];
+                    leftArmGroup.rotation.y = mState.leftArm[1];
+                    leftArmGroup.rotation.z = mState.leftArm[2];
+                    rightArmGroup.rotation.x = mState.rightArm[0];
+                    rightArmGroup.rotation.y = mState.rightArm[1];
+                    rightArmGroup.rotation.z = mState.rightArm[2];
+                    // Also set forearm rotations to follow (we'll use same for simplicity)
+                    leftForearmGroup.rotation.x = mState.leftArm[0] * 0.5;
+                    rightForearmGroup.rotation.x = mState.rightArm[0] * 0.5;
                 }}
                 if (state.cmd === 'bow') {{
                     state.bowProgress = Math.min(state.kataTimer / dur, 1.0);
@@ -1229,6 +1245,11 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     state.bowActive = false;
                     state.munchakoMode = false;
                     munchakoGroup.visible = false;
+                    // Reset arms
+                    leftArmGroup.rotation.x = 0;
+                    rightArmGroup.rotation.x = 0;
+                    leftForearmGroup.rotation.x = 0;
+                    rightForearmGroup.rotation.x = 0;
                 }}
                 return;
             }}
@@ -1277,20 +1298,22 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             const amp = isRun ? 1.2 : 0.5;
             const swing = (state.cmd === 'walk' || isRun) ? Math.sin(state.walkCycle) * amp : 0;
 
-            // Reset all rotations
-            leftArmGroup.rotation.x = 0;
-            rightArmGroup.rotation.x = 0;
-            leftForearmGroup.rotation.x = 0;
-            rightForearmGroup.rotation.x = 0;
+            // Only reset arm rotations if not in munchako mode (since munchako sets them)
+            if (state.cmd !== 'munchako') {{
+                leftArmGroup.rotation.x = 0;
+                rightArmGroup.rotation.x = 0;
+                leftForearmGroup.rotation.x = 0;
+                rightForearmGroup.rotation.x = 0;
+                leftArmGroup.rotation.y = 0;
+                rightArmGroup.rotation.y = 0;
+                leftArmGroup.rotation.z = 0;
+                rightArmGroup.rotation.z = 0;
+            }}
             leftLegGroup.rotation.x = 0;
             rightLegGroup.rotation.x = 0;
             leftLowerLegGroup.rotation.x = 0;
             rightLowerLegGroup.rotation.x = 0;
             torsoGroup.rotation.x = 0;
-            leftArmGroup.rotation.y = 0;
-            rightArmGroup.rotation.y = 0;
-            leftArmGroup.rotation.z = 0;
-            rightArmGroup.rotation.z = 0;
             // Reset robot rotation (except for munchako)
             if (state.cmd !== 'munchako') {{
                 robotGroup.rotation.y = 0;
@@ -1307,51 +1330,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
-            // ---- Munchako Spinning ----
-            if (state.cmd === 'munchako' && state.munchakoMode) {{
-                // Move arms to follow the munchako
-                // Get current position of munchako relative to robotGroup
-                const mPos = munchakoGroup.position;
-                // Approximate hand positions: we'll set arm angles based on mPos
-                // Simpler: we'll move the arms to point towards the munchako.
-                // For right arm: if munchako is on right side, right arm raised, etc.
-                // We can just set arm rotations to mimic holding/tossing.
-                // Let's make the arms follow the munchako position.
-                // Compute angles:
-                // For simplicity, we'll just move the arms in a generic pattern.
-                // But to look realistic, we can set arm rotations based on mPos.
-                // We'll use a simplified approach: if mPos.x > 0, right arm up, left arm down; else vice versa.
-                const r = Math.sqrt(mPos.x*mPos.x + mPos.y*mPos.y + mPos.z*mPos.z);
-                if (r > 0.1) {{
-                    // Right arm follows munchako
-                    const targetX = mPos.x - 0.65; // offset from shoulder
-                    const targetY = mPos.y - 0.8;
-                    const targetZ = mPos.z;
-                    // Compute rotation for right arm (as a group)
-                    // We'll just set a simple rotation: raise arm if munchako is high.
-                    const armAngle = Math.atan2(targetY, targetX);
-                    rightArmGroup.rotation.x = -0.5 + 0.5 * Math.sin(state.munchakoTimer * 3);
-                    rightForearmGroup.rotation.x = -0.2 + 0.2 * Math.sin(state.munchakoTimer * 3 + 1);
-                    // Left arm follows opposite
-                    leftArmGroup.rotation.x = -0.5 + 0.5 * Math.sin(state.munchakoTimer * 3 + Math.PI);
-                    leftForearmGroup.rotation.x = -0.2 + 0.2 * Math.sin(state.munchakoTimer * 3 + 1 + Math.PI);
-                }} else {{
-                    // If munchako is very close, keep arms neutral
-                }}
-                // Also spin the munchako disc
-                // We'll rotate the disc mesh inside munchakoGroup.
-                // Since we have references, we can iterate children.
-                munchakoGroup.children.forEach(child => {{
-                    if (child.isMesh) {{
-                        child.rotation.y += dt * 30; // fast spin
-                    }}
-                }});
-                // Slight body lean
-                torsoGroup.rotation.z = 0.05 * Math.sin(state.munchakoTimer * 2);
-                // Keep robot on ground
-                robotGroup.position.y = 0.71;
-                return;
-            }}
+            // ---- Munchako Spinning - already handled in update ----
 
             // ---- Kata pose moves (fast oscillations) ----
             const pose = state.cmd;
