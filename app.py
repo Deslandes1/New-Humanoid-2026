@@ -36,7 +36,7 @@ TRANSLATIONS = {
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
         "all_moves_demo": "🎯 All Moves Demo (with kata moves)",
-        "munchako_demo": "🌀 Munchako Spin",
+        "munchako_demo": "🌀 Munchako Spin (fast)",
         "bow_kata": "🥋 Bow + Kata",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
@@ -89,7 +89,7 @@ TRANSLATIONS = {
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
         "all_moves_demo": "🎯 Démo de tous les mouvements (avec kata)",
-        "munchako_demo": "🌀 Spin Munchako",
+        "munchako_demo": "🌀 Spin Munchako (rapide)",
         "bow_kata": "🥋 Salut + Kata",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
@@ -142,7 +142,7 @@ TRANSLATIONS = {
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
         "all_moves_demo": "🎯 Demostración de todos los movimientos (con kata)",
-        "munchako_demo": "🌀 Giro Munchako",
+        "munchako_demo": "🌀 Giro Munchako (rápido)",
         "bow_kata": "🥋 Inclinación + Kata",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
@@ -195,7 +195,7 @@ TRANSLATIONS = {
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
         "all_moves_demo": "🎯 Demonstração de todos os movimentos (com kata)",
-        "munchako_demo": "🌀 Giro Munchako",
+        "munchako_demo": "🌀 Giro Munchako (rápido)",
         "bow_kata": "🥋 Reverência + Kata",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
@@ -248,7 +248,7 @@ TRANSLATIONS = {
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
         "all_moves_demo": "🎯 所有动作演示（含型）",
-        "munchako_demo": "🌀 猛查科旋转",
+        "munchako_demo": "🌀 猛查科旋转（快速）",
         "bow_kata": "🥋 鞠躬 + 型 (Kata)",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
@@ -1062,59 +1062,53 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         }}
 
         // ---- Munchako keyframes ----
-        // Defines a sequence: [time in seconds, position (x,y,z), leftArmRotation (x,y,z), rightArmRotation (x,y,z)]
-        // We'll use 8 keyframes over 20s.
+        // Define a fast cycle (4 cycles in 20s -> each 5s)
         function getMunchakoState(t) {{
-            // t in [0,20]
-            // Cycle through a loop of poses
-            const cycle = 20.0;
-            const phase = (t % cycle) / cycle; // 0..1
+            const cycleDuration = 5.0; // each cycle lasts 5 seconds
+            const phase = (t % cycleDuration) / cycleDuration; // 0..1
 
-            // Keyframes: we'll use 7 keyframes for the loop
+            // Keyframes for one cycle (7 keyframes)
             const keyframes = [
-                {{ time: 0.0, pos: [0.65, 0.6, 0.1], leftArm: [0,0,0], rightArm: [-0.5,0,0] }},   // Right hand start
-                {{ time: 0.15, pos: [0.3, 0.7, 0.2], leftArm: [0,0,0], rightArm: [-0.8,0,0] }},    // Throwing to left
-                {{ time: 0.3, pos: [-0.65, 0.6, 0.1], leftArm: [-0.5,0,0], rightArm: [0,0,0] }},  // Left hand catch
-                {{ time: 0.45, pos: [0.6, 0.2, -0.3], leftArm: [-0.2,0,0], rightArm: [-0.3,0,0] }}, // Under right arm
-                {{ time: 0.6, pos: [-0.6, 0.2, -0.3], leftArm: [-0.3,0,0], rightArm: [-0.2,0,0] }}, // Under left arm
-                {{ time: 0.75, pos: [0, 1.0, -0.2], leftArm: [-0.1,0,0], rightArm: [-0.1,0,0] }},   // Around neck
-                {{ time: 0.9, pos: [-0.65, 0.6, 0.1], leftArm: [-0.5,0,0], rightArm: [0,0,0] }},   // Back to left hand
-                {{ time: 1.0, pos: [0.65, 0.6, 0.1], leftArm: [0,0,0], rightArm: [-0.5,0,0] }},   // Return to right hand
+                {{ time: 0.0, pos: [0.65, 0.6, 0.1], leftArm: [0,0,0], rightArm: [-0.5,0,0] }},
+                {{ time: 0.15, pos: [0.3, 0.7, 0.2], leftArm: [0,0,0], rightArm: [-0.8,0,0] }},
+                {{ time: 0.3, pos: [-0.65, 0.6, 0.1], leftArm: [-0.5,0,0], rightArm: [0,0,0] }},
+                {{ time: 0.45, pos: [0.6, 0.2, -0.3], leftArm: [-0.2,0,0], rightArm: [-0.3,0,0] }},
+                {{ time: 0.6, pos: [-0.6, 0.2, -0.3], leftArm: [-0.3,0,0], rightArm: [-0.2,0,0] }},
+                {{ time: 0.75, pos: [0, 1.0, -0.2], leftArm: [-0.1,0,0], rightArm: [-0.1,0,0] }},
+                {{ time: 0.9, pos: [-0.65, 0.6, 0.1], leftArm: [-0.5,0,0], rightArm: [0,0,0] }},
+                {{ time: 1.0, pos: [0.65, 0.6, 0.1], leftArm: [0,0,0], rightArm: [-0.5,0,0] }}
             ];
 
-            // Find which two keyframes we're between
             const totalKeyframes = keyframes.length;
-            // We'll map phase to a segment
             const segCount = totalKeyframes - 1;
             const segLen = 1.0 / segCount;
             const idx = Math.floor(phase / segLen);
             const i0 = Math.min(idx, segCount-1);
             const i1 = Math.min(idx+1, segCount);
-            const localT = (phase - i0 * segLen) / segLen; // 0..1
+            const localT = (phase - i0 * segLen) / segLen;
+
+            const smooth = localT * localT * (3 - 2 * localT);
 
             const kf0 = keyframes[i0];
             const kf1 = keyframes[i1];
 
-            // Smooth step
-            const smooth = localT * localT * (3 - 2 * localT);
-
-            const pos = [
-                kf0.pos[0] + (kf1.pos[0] - kf0.pos[0]) * smooth,
-                kf0.pos[1] + (kf1.pos[1] - kf0.pos[1]) * smooth,
-                kf0.pos[2] + (kf1.pos[2] - kf0.pos[2]) * smooth
-            ];
-            const lArm = [
-                kf0.leftArm[0] + (kf1.leftArm[0] - kf0.leftArm[0]) * smooth,
-                kf0.leftArm[1] + (kf1.leftArm[1] - kf0.leftArm[1]) * smooth,
-                kf0.leftArm[2] + (kf1.leftArm[2] - kf0.leftArm[2]) * smooth
-            ];
-            const rArm = [
-                kf0.rightArm[0] + (kf1.rightArm[0] - kf0.rightArm[0]) * smooth,
-                kf0.rightArm[1] + (kf1.rightArm[1] - kf0.rightArm[1]) * smooth,
-                kf0.rightArm[2] + (kf1.rightArm[2] - kf0.rightArm[2]) * smooth
-            ];
-
-            return {{ pos, leftArm: lArm, rightArm: rArm }};
+            return {{
+                pos: [
+                    kf0.pos[0] + (kf1.pos[0] - kf0.pos[0]) * smooth,
+                    kf0.pos[1] + (kf1.pos[1] - kf0.pos[1]) * smooth,
+                    kf0.pos[2] + (kf1.pos[2] - kf0.pos[2]) * smooth
+                ],
+                leftArm: [
+                    kf0.leftArm[0] + (kf1.leftArm[0] - kf0.leftArm[0]) * smooth,
+                    kf0.leftArm[1] + (kf1.leftArm[1] - kf0.leftArm[1]) * smooth,
+                    kf0.leftArm[2] + (kf1.leftArm[2] - kf0.leftArm[2]) * smooth
+                ],
+                rightArm: [
+                    kf0.rightArm[0] + (kf1.rightArm[0] - kf0.rightArm[0]) * smooth,
+                    kf0.rightArm[1] + (kf1.rightArm[1] - kf0.rightArm[1]) * smooth,
+                    kf0.rightArm[2] + (kf1.rightArm[2] - kf0.rightArm[2]) * smooth
+                ]
+            }};
         }}
 
         // ---- Update logic ----
@@ -1209,7 +1203,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                     state.walkCycle += dt * 8.0;
                 }} else if (state.cmd === 'munchako') {{
                     state.munchakoTimer += dt;
-                    // Get munchako state
+                    // Get munchako state (fast cycles)
                     const mState = getMunchakoState(state.munchakoTimer);
                     munchakoGroup.position.set(mState.pos[0], mState.pos[1], mState.pos[2]);
                     // Rotate disc meshes inside munchakoGroup
@@ -1218,15 +1212,13 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                             child.rotation.y += dt * 30; // fast spin
                         }}
                     }});
-                    // Set arm rotations (upper arm and forearm)
-                    // We'll set leftArmGroup rotation.x based on mState.leftArm[0], etc.
+                    // Set arm rotations
                     leftArmGroup.rotation.x = mState.leftArm[0];
                     leftArmGroup.rotation.y = mState.leftArm[1];
                     leftArmGroup.rotation.z = mState.leftArm[2];
                     rightArmGroup.rotation.x = mState.rightArm[0];
                     rightArmGroup.rotation.y = mState.rightArm[1];
                     rightArmGroup.rotation.z = mState.rightArm[2];
-                    // Also set forearm rotations to follow (we'll use same for simplicity)
                     leftForearmGroup.rotation.x = mState.leftArm[0] * 0.5;
                     rightForearmGroup.rotation.x = mState.rightArm[0] * 0.5;
                 }}
