@@ -5,6 +5,7 @@ import time
 import json
 import urllib.parse
 import random
+import base64
 
 # ---- Check if pyttsx3 is available ----
 try:
@@ -620,6 +621,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
     <html>
     <head>
         <meta charset="utf-8">
+        <title>Robot Viewer {cache_buster}</title>
         <style>
             body {{ margin: 0; overflow: hidden; background: #dcebf7; }}
             canvas {{ display: block; }}
@@ -658,7 +660,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
     </head>
     <body>
         <!-- cache-buster: {cache_buster} -->
-        <div id="info">🤖 {robot_name} | Command: {command if command else 'Idle'}</div>
+        <div id="info">🤖 {robot_name} | Command: {command if command else 'Idle'} | Kata: {kata_name if kata_name else 'None'}</div>
         <div id="step-info">⏳ Waiting...</div>
         <div id="step-progress"><div id="step-progress-bar" style="width:0%"></div></div>
         <script type="importmap">
@@ -958,6 +960,10 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             validCmds: {json.dumps(valid_commands)},
         }};
 
+        // ---- DEBUG: log the kata sequence ----
+        console.log('Kata sequence length:', state.kataSeq.length);
+        console.log('Kata sequence:', state.kataSeq);
+
         // ---- UI update ----
         function updateStepInfo() {{
             if (state.kataRunning && state.kataAction !== null) {{
@@ -1107,12 +1113,14 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         // ---- Init ----
         state.cmd = state.initCmd;
         if (state.kataSeq.length > 0) {{
+            console.log('Starting kata sequence with length', state.kataSeq.length);
             state.kataRunning = true;
             state.kataIdx = 0;
             state.kataTimer = 0;
             state.kataComplete = false;
             state.kataAction = null;
         }} else {{
+            console.log('No kata sequence');
             if (state.validCmds.includes(state.cmd)) {{
                 if (state.cmd === 'walk' || state.cmd === 'run') {{
                     state.looping = true;
@@ -1457,14 +1465,20 @@ with col_view:
     """, unsafe_allow_html=True)
 
     st.markdown(f"### {t('robot_view')}")
-    # Use st.components.v1.html for reliable re-render
+
+    # Generate fresh HTML with unique cache buster
+    cache_buster = int(time.time() * 1000) + random.randint(0, 999999)
     viewer_html = get_robot_viewer_html(
         st.session_state.robot_selected,
         st.session_state.command if st.session_state.kata is None else "",
         st.session_state.kata,
-        cache_buster=int(time.time() * 1000) + random.randint(0, 99999)
+        cache_buster
     )
-    st.components.v1.html(viewer_html, height=650, width=700)
+
+    # Use an iframe with a data URI – this forces a full reload on every run
+    viewer_b64 = base64.b64encode(viewer_html.encode('utf-8')).decode('utf-8')
+    viewer_src = f"data:text/html;charset=utf-8;base64,{viewer_b64}"
+    st.iframe(viewer_src, height=650, width=700)
 
 with col_info:
     st.markdown(f"""
