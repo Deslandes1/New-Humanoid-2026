@@ -1414,9 +1414,12 @@ with st.sidebar:
         })();
     </script>
     """
-    # Convert to data URI and use st.iframe
+    # Encode as data URI and embed via <iframe> in markdown (no deprecation warning)
     globe_data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(globe_html)
-    st.iframe(globe_data_uri, height=220, scrolling=False)
+    st.markdown(
+        f'<iframe src="{globe_data_uri}" height="220" scrolling="no" style="border:none; border-radius:50%; box-shadow: 0 4px 20px rgba(0,102,204,0.3);"></iframe>',
+        unsafe_allow_html=True
+    )
 
     st.markdown("---")
 
