@@ -35,7 +35,7 @@ TRANSLATIONS = {
         "cmd_hint": "You can also type a kata name (e.g., `Taikyoku Shodan`) to run the full sequence.",
         "action_placeholder": "e.g., backflip or Taikyoku Shodan",
         "execute_action": "▶️ Execute Action",
-        "soccer_play": "⚽ Bounce Ball (Foot to Head)",
+        "soccer_play": "⚽ Chene (Foot Stall)",
         "speech": "🗣️ Speech",
         "speak_placeholder": "e.g., Hello, I am your robot.",
         "speak_button": "🔊 Make Robot Speak",
@@ -86,7 +86,7 @@ TRANSLATIONS = {
         "cmd_hint": "Vous pouvez aussi taper un nom de kata (ex: `Taikyoku Shodan`) pour exécuter la séquence complète.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Exécuter l'action",
-        "soccer_play": "⚽ Faire rebondir (pied-tête)",
+        "soccer_play": "⚽ Chene (Jeu de pied)",
         "speech": "🗣️ Parole",
         "speak_placeholder": "ex: Bonjour, je suis votre robot.",
         "speak_button": "🔊 Faire parler le robot",
@@ -137,7 +137,7 @@ TRANSLATIONS = {
         "cmd_hint": "También puede escribir un nombre de kata (ej: `Taikyoku Shodan`) para ejecutar la secuencia completa.",
         "action_placeholder": "ej: backflip o Taikyoku Shodan",
         "execute_action": "▶️ Ejecutar acción",
-        "soccer_play": "⚽ Botar (pie-cabeza)",
+        "soccer_play": "⚽ Chene (Control de balón)",
         "speech": "🗣️ Voz",
         "speak_placeholder": "ej: Hola, soy su robot.",
         "speak_button": "🔊 Hacer hablar al robot",
@@ -188,7 +188,7 @@ TRANSLATIONS = {
         "cmd_hint": "Você também pode digitar um nome de kata (ex: `Taikyoku Shodan`) para executar a sequência completa.",
         "action_placeholder": "ex: backflip ou Taikyoku Shodan",
         "execute_action": "▶️ Executar Ação",
-        "soccer_play": "⚽ Quicar (pé-cabeça)",
+        "soccer_play": "⚽ Chene (Controle de bola)",
         "speech": "🗣️ Fala",
         "speak_placeholder": "ex: Olá, eu sou o seu robô.",
         "speak_button": "🔊 Fazer o Robô Falar",
@@ -239,7 +239,7 @@ TRANSLATIONS = {
         "cmd_hint": "您也可以输入型 (Kata) 名称（例如 `Taikyoku Shodan`）来运行完整序列。",
         "action_placeholder": "例如：backflip 或 Taikyoku Shodan",
         "execute_action": "▶️ 执行指令",
-        "soccer_play": "⚽ 颠球（脚到头）",
+        "soccer_play": "⚽ 控球 (脚部停球)",
         "speech": "🗣️ 语音",
         "speak_placeholder": "例如：你好，我是你的机器人。",
         "speak_button": "🔊 让机器人说话",
@@ -547,10 +547,31 @@ st.markdown("""
         50% { opacity: 0.6; }
         100% { opacity: 1; }
     }
+    /* globe container */
+    .globe-wrapper {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin: 10px 0;
+    }
+    .globe-wrapper iframe {
+        border: none;
+        border-radius: 50%;
+        box-shadow: 0 4px 20px rgba(0,102,204,0.3);
+    }
+    .logo-text {
+        font-size: 1.1rem;
+        font-weight: bold;
+        color: #0066cc;
+        text-shadow: 0 0 20px rgba(0,102,204,0.2);
+        margin-top: 6px;
+        line-height: 1.3;
+        text-align: center;
+    }
 </style>
 """, unsafe_allow_html=True)
 
-# ---- 3D Viewer HTML generator (foot-to-head bounce) ----
+# ---- 3D Viewer HTML generator (chene / foot stall) ----
 def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster=0):
     # Colors, kata info, etc.
     color_map = {r: ROBOTS[r]["color"] for r in ROBOTS}
@@ -986,7 +1007,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 progressBar.style.width = '100%';
             }} else {{
                 if (state.soccerMode && state.cmd === 'run') {{
-                    stepInfoEl.textContent = '⚽ Bouncing (Foot to Head)';
+                    stepInfoEl.textContent = '⚽ Chene (Foot Stall)';
                     progressBar.style.width = '100%';
                 }} else if (state.cmd !== 'idle') {{
                     stepInfoEl.textContent = `▶️ ${{state.cmd.toUpperCase()}}`;
@@ -1043,21 +1064,22 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
                 return;
             }}
 
-            // ---- Soccer / Foot-to-Head Bounce (alternating feet) ----
+            // ---- Soccer / Chene (Foot Stall) ----
             if (state.soccerMode && state.cmd === 'run') {{
-                // FIX: increment walkCycle at a realistic running speed
-                state.walkCycle += dt * 10.0;   // increased speed for realistic running
+                // Slow, controlled bounce (like a foot stall / chene)
+                state.walkCycle += dt * 3.5;   // slower, more controlled
 
-                const headHeight = 1.5; // relative to robotGroup (head top ~ 1.5)
                 const footHeight = ballBasePos.y; // -0.8
-                const horizontalAmp = 0.35;  // slightly wider for clearer alternation
-                const phase = state.walkCycle;  // one bounce per full leg cycle (two steps)
-                const vertical = Math.sin(phase) * Math.sin(phase); // 0..1
-                const yPos = footHeight + (headHeight - footHeight) * vertical;
+                const kneeHeight = -0.2;          // knee level
+                const horizontalAmp = 0.25;       // small lateral movement
+                const phase = state.walkCycle;
+                // Soft bounce: stays low, between foot and knee
+                const vertical = (Math.sin(phase) * 0.5 + 0.5); // 0..1
+                const yPos = footHeight + (kneeHeight - footHeight) * vertical;
                 const xPos = horizontalAmp * Math.sin(phase);
                 soccerBall.position.set(xPos, yPos, ballBasePos.z);
-                soccerBall.rotation.x += dt * 2;
-                soccerBall.rotation.z += dt * 1.5;
+                soccerBall.rotation.x += dt * 1.5;
+                soccerBall.rotation.z += dt * 1.0;
                 updateStepInfo();
                 return;
             }}
@@ -1113,6 +1135,7 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
         // ---- Robot animation ----
         function animateRobot() {{
             const isRun = (state.cmd === 'run');
+            const isSoccer = state.soccerMode && state.cmd === 'run';
             const amp = isRun ? 1.2 : 0.5;
             const swing = (state.cmd === 'walk' || isRun) ? Math.sin(state.walkCycle) * amp : 0;
 
@@ -1125,6 +1148,26 @@ def get_robot_viewer_html(robot_name, command=None, kata_name=None, cache_buster
             leftLowerLegGroup.rotation.x = 0;
             rightLowerLegGroup.rotation.x = 0;
             torsoGroup.rotation.x = 0;
+
+            // Soccer / Chene mode: slight forward lean, arms relaxed
+            if (isSoccer) {{
+                // Gentle forward lean (torso)
+                torsoGroup.rotation.x = 0.12;
+                // Arms slightly forward and relaxed
+                leftArmGroup.rotation.x = -0.2;
+                rightArmGroup.rotation.x = -0.2;
+                leftForearmGroup.rotation.x = 0.1;
+                rightForearmGroup.rotation.x = 0.1;
+                // Legs: subtle sway to match the ball
+                const legSway = Math.sin(state.walkCycle) * 0.08;
+                leftLegGroup.rotation.x = legSway;
+                rightLegGroup.rotation.x = -legSway;
+                leftLowerLegGroup.rotation.x = -legSway * 0.5;
+                rightLowerLegGroup.rotation.x = legSway * 0.5;
+                // Keep robot on ground
+                robotGroup.position.y = 0.5;
+                return;
+            }}
 
             if (state.cmd === 'walk' || isRun) {{
                 const armSwing = swing * 0.8;
@@ -1285,12 +1328,96 @@ st.markdown(f"""
 
 # ========== SIDEBAR ==========
 with st.sidebar:
+    # Profile Picture
     st.markdown("""
     <div style="text-align: center; margin-bottom: 20px;">
         <img src="https://raw.githubusercontent.com/Deslandes1/-Robotic-Control-Center-June-2026/main/Gesner%20Deslandes.png" 
              class="profile-img">
         <h3 class="profile-name">Gesner Deslandes</h3>
         <p class="profile-title">Engineer-in-Chief, GlobalInternet.py</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.markdown("---")
+
+    # Logo: Spinning Blue Globe + company name
+    globe_html = """
+    <div class="globe-wrapper">
+        <div id="globe-container" style="width:150px;height:150px;margin:0 auto;"></div>
+        <div class="logo-text">Globalinternet.py Online Software Company</div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        (function() {
+            var container = document.getElementById('globe-container');
+            if (!container) return;
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(45, 1, 0.1, 1000);
+            camera.position.z = 3;
+            var renderer = new THREE.WebGLRenderer({antialias: true, alpha: true});
+            renderer.setSize(150, 150);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            container.appendChild(renderer.domElement);
+
+            // Blue sphere
+            var geometry = new THREE.SphereGeometry(1, 48, 48);
+            var material = new THREE.MeshPhongMaterial({
+                color: 0x3388ff,
+                emissive: 0x0044aa,
+                emissiveIntensity: 0.3,
+                shininess: 40,
+                transparent: true,
+                opacity: 0.95
+            });
+            var sphere = new THREE.Mesh(geometry, material);
+            scene.add(sphere);
+
+            // Rings (rotating)
+            var ringGeo = new THREE.TorusGeometry(1.15, 0.025, 16, 32);
+            var ringMat = new THREE.MeshBasicMaterial({color: 0x88ccff, transparent: true, opacity: 0.6});
+            var ring1 = new THREE.Mesh(ringGeo, ringMat);
+            ring1.rotation.x = Math.PI/2;
+            scene.add(ring1);
+
+            var ring2 = ring1.clone();
+            ring2.rotation.z = Math.PI/3;
+            scene.add(ring2);
+
+            var ring3 = ring1.clone();
+            ring3.rotation.z = -Math.PI/3;
+            scene.add(ring3);
+
+            // Lights
+            var light1 = new THREE.DirectionalLight(0xffffff, 1);
+            light1.position.set(1, 1, 1);
+            scene.add(light1);
+            var light2 = new THREE.DirectionalLight(0x88aaff, 0.6);
+            light2.position.set(-1, 0.5, -1);
+            scene.add(light2);
+            var ambient = new THREE.AmbientLight(0x446688, 0.3);
+            scene.add(ambient);
+
+            function animate() {
+                requestAnimationFrame(animate);
+                sphere.rotation.y += 0.008;
+                ring1.rotation.y += 0.008;
+                ring2.rotation.y += 0.008;
+                ring3.rotation.y += 0.008;
+                renderer.render(scene, camera);
+            }
+            animate();
+        })();
+    </script>
+    """
+    st.components.v1.html(globe_html, height=220)
+
+    st.markdown("---")
+
+    # Contact Info
+    st.markdown("""
+    <div style="background: rgba(255,255,255,0.6); border: 1px solid #88bce0; border-radius: 8px; padding: 12px; font-size: 0.85rem; color: #1a2a3a;">
+        <strong style="color: #0066cc;">📧 Email:</strong> deslandes78@gmail.com<br>
+        <strong style="color: #0066cc;">📱 Phone:</strong> (509) 4738-5663<br>
     </div>
     """, unsafe_allow_html=True)
 
