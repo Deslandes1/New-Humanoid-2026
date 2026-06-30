@@ -1414,8 +1414,9 @@ with st.sidebar:
         })();
     </script>
     """
-    # Replace deprecated st.components.v1.html with st.iframe
-    st.iframe(globe_html, height=220, scrolling=False)
+    # Convert to data URI and use st.iframe
+    globe_data_uri = "data:text/html;charset=utf-8," + urllib.parse.quote(globe_html)
+    st.iframe(globe_data_uri, height=220, scrolling=False)
 
     st.markdown("---")
 
